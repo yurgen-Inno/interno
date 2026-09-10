@@ -247,6 +247,18 @@
     }
   }
 
+  /* Métrica de interés */
+  .metric-cell {
+    width: 150px;
+
+    .metric-value {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #374151;
+    }
+  }
+
+
 }
 
 /* Pagination Footer */

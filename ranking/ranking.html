@@ -51,6 +51,7 @@
             <th class="col-level">Seniority</th>
             <th class="col-filial">Filial</th>
             <th class="col-score">Puntuación <span class="sort-icon">↑↓</span></th>
+            <th class="col-metric">Métrica de interés <span class="sort-icon">↑↓</span></th>
           </tr>
         </thead>
         <tbody>
@@ -77,12 +78,16 @@
                 <span class="score-max">/ 100</span>
               </div>
             </td>
+            <td class="metric-cell">
+              <span class="metric-value">{{ author.metricOfInterest | number:'1.1-2' }}</span>
+            </td>
           </tr>
+
         </tbody>
       </table>
     </div>
 
- 2
+
     <!-- Paginador -->
     <footer class="pagination-footer">
       <span class="pagination-info">Mostrando 1-15 de 191 elementos</span>
