@@ -1,0 +1,104 @@
+<div class="seniority-page">
+  <!-- Botón volver y Titular principal -->
+  <header class="page-header">
+    <button class="back-btn" type="button" aria-label="Volver">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+    </button>
+    <div class="header-titles">
+      <h1>Tu seniority</h1>
+      <p>Consulta tu perfil de seniority y compáralo en el ranking</p>
+    </div>
+  </header>
+
+  <!-- Pestañas de navegación -->
+  <nav class="tabs-nav">
+    <button
+      class="tab-item"
+      [class.active]="activeTab === 'perfil'"
+      (click)="activeTab = 'perfil'">
+      Mi perfil
+    </button>
+    <button
+      class="tab-item"
+      [class.active]="activeTab === 'ranking'"
+      (click)="activeTab = 'ranking'">
+      Ranking
+    </button>
+  </nav>
+
+  <!-- Sección Ranking -->
+  <section class="ranking-section" *ngIf="activeTab === 'ranking'">
+    <div class="section-title-row">
+      <h2>Lista de autores</h2>
+      <button class="info-icon-btn" type="button" title="Información">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-container">
+      <table class="authors-table">
+        <thead>
+          <tr>
+            <th class="col-pos">Posición</th>
+            <th class="col-name">Nombre <span class="sort-icon">↑↓</span></th>
+            <th class="col-level">Seniority</th>
+            <th class="col-filial">Filial</th>
+            <th class="col-score">Puntuación <span class="sort-icon">↑↓</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let author of authors" [class.top-tier]="author.position <= 3">
+            <td class="pos-cell">
+              <div class="pos-wrapper">
+                <span class="pos-number" [class.gold]="author.position === 1" [class.silver]="author.position === 2" [class.bronze]="author.position === 3">
+                  #{{ author.position }}
+                </span>
+              </div>
+            </td>
+            <td class="name-cell">
+              <span class="author-name">{{ author.name }}</span>
+            </td>
+            <td class="seniority-cell">
+              <span class="level-badge" [class.highlight-blue]="author.level.includes('datos')" [ngClass]="author.level.toLowerCase().replace(' ', '-')">
+                {{ author.level }}
+              </span>
+            </td>
+            <td class="filial-cell">{{ author.filial }}</td>
+            <td class="score-cell">
+              <div class="score-wrapper">
+                <span class="score-value">{{ author.score | number:'1.1-2' }}</span>
+                <span class="score-max">/ 100</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+
+    <!-- Paginador -->
+    <footer class="pagination-footer">
+      <span class="pagination-info">Mostrando 1-15 de 191 elementos</span>
+      <div class="pagination-controls">
+        <button class="page-btn prev" disabled>&lt;</button>
+        <button class="page-btn page-num active">1</button>
+        <button class="page-btn page-num">2</button>
+        <button class="page-btn page-num">3</button>
+        <button class="page-btn page-num">4</button>
+        <button class="page-btn page-num">5</button>
+        <span class="dots">...</span>
+        <button class="page-btn page-num">13</button>
+        <button class="page-btn next">&gt;</button>
+      </div>
+    </footer>
+  </section>
+</div>
+
+
