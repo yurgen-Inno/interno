@@ -1,73 +1,3 @@
-public nestElementsInParent(
-  node: IDocumentationTreeItem,
-  repository: IResponseRepositories
-): void {
-  node.loading = true;
-  this._documentationService
-    .getListDocumentNest(repository, node.path)
-    .subscribe({
-      next: (response: any) => {
-        // Tu HTML exige node.children.results:
-        const resultsArray = Array.isArray(response) ? response : (response?.results ?? []);
-        node.children = { results: resultsArray } as any;
-        node.loading = false;
-
-        // Tu lógica original que notifica al Signal y restaura el clic manual:
-        this.$elementsExpanded.update(current => {
-          if (!current) return current;
-          return {
-            ...current,
-            results: current.results.map(item =>
-              item.path === node.path ? { ...node } : item
-            )
-          };
-        });
-
-        // Continuar bajando en el árbol pasando los parámetros necesarios:
-        setTimeout(() => {
-          this.restoreTreeSelection(repository, this.selectedPath());
-        }, 0);
-      },
-      error: () => {
-        node.loading = false;
-      }
-    });
-}
-
-
-private expandPathToSelection(
-  path: string,
-  nodes: IDocumentationTreeItem[],
-  repository: IResponseRepositories
-): void {
-  if (!path || !nodes || nodes.length === 0) {
-    return;
-  }
-
-  const segments = path.split('/').filter(Boolean);
-  let currentNodes = nodes;
-
-  for (const segment of segments) {
-    const nextNode = currentNodes.find(
-      item => (item.name === segment || item.path?.endsWith('/' + segment)) && item.type === ETypeFile.FOLDER
-    );
-
-    if (!nextNode) {
-      return;
-    }
-
-    if (!nextNode.expanded) {
-      nextNode.expanded = true;
-      this.nestElementsInParent(nextNode, repository);
-      return; // Se detiene a esperar la respuesta HTTP
-    }
-
-    // Leemos exactamente de .results como lo tiene tu HTML:
-    currentNodes = nextNode.children?.results ?? [];
-  }
-}
-
-
 private restoreTreeSelection(
   repository: IResponseRepositories | null = this.selectedRepository(),
   selectedPath: string | null = this.selectedPath()
@@ -97,25 +27,76 @@ private restoreTreeSelection(
     }
   }
 
-  // 1. Decodificar caracteres URL (%2F -> / y %3F -> ?)
-  let decodedPath = decodeURIComponent(selectedPath);
+  // 1. Decodificar y normalizar separadores
+  let decodedPath = decodeURIComponent(selectedPath).replace('?', '/');
 
-  // 2. Unificar el separador del archivo ? convirtiéndolo a /
-  decodedPath = decodedPath.replace('?', '/');
+  // Limpiar posibles barras duplicadas o finales
+  decodedPath = decodedPath.replace(/\/+$/, '');
 
   const pathParts = decodedPath.split('/').filter(Boolean);
   const lastPart = pathParts[pathParts.length - 1] ?? '';
-  const isDocumentPath = lastPart.includes('.');
 
-  const folderPath = isDocumentPath
+  // 2. Si la ruta termina en carpeta, asumimos que su archivo activo es README.md
+  const hasExplicitFile = lastPart.includes('.');
+  const activeDocumentPath = hasExplicitFile 
+    ? decodedPath 
+    : `${decodedPath}/README.md`;
+
+  const folderPath = hasExplicitFile
     ? decodedPath.substring(0, decodedPath.lastIndexOf('/'))
     : decodedPath;
 
   const nodes = this.$elementsExpanded()?.results ?? [];
 
-  if (isDocumentPath) {
-    this.expandPathToSelection(folderPath, nodes, repository);
+  // Siempre expandimos hasta la carpeta destino
+  this.expandPathToSelection(folderPath, nodes, repository, activeDocumentPath);
+
+  // Marcamos como activo el archivo resultante (sea el explícito o el README.md)
+  this.$activeNodePath.set(activeDocumentPath);
+}
+
+
+private expandPathToSelection(
+  path: string,
+  nodes: IDocumentationTreeItem[],
+  repository: IResponseRepositories,
+  targetDocumentPath?: string
+): void {
+  if (!path || !nodes || nodes.length === 0) {
+    return;
   }
 
-  this.$activeNodePath.set(isDocumentPath ? decodedPath : null);
+  const segments = path.split('/').filter(Boolean);
+  let currentNodes = nodes;
+
+  for (const segment of segments) {
+    const nextNode = currentNodes.find(
+      item => (item.name === segment || item.path?.endsWith('/' + segment)) && item.type === ETypeFile.FOLDER
+    );
+
+    if (!nextNode) {
+      return;
+    }
+
+    if (!nextNode.expanded) {
+      nextNode.expanded = true;
+      this.nestElementsInParent(nextNode, repository);
+      return; // Espera a que termine la llamada HTTP
+    }
+
+    currentNodes = nextNode.children?.results ?? [];
+  }
+
+  // Si ya llegó al final de los segmentos de carpetas y tenemos un documento objetivo
+  if (targetDocumentPath && currentNodes.length > 0) {
+    const readmeNode = currentNodes.find(
+      item => item.path === targetDocumentPath || 
+              item.name?.toLowerCase() === 'readme.md'
+    );
+
+    if (readmeNode) {
+      // Emite el evento de selección para cargar el markdown en pantalla
+      this.selectFile(readmeNode);
+    }
+  }
 }
