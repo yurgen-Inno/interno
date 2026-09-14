@@ -1,77 +1,8 @@
-public toggleNode(node: IDocumentationTreeItem): void {
-  if (node.type === ETypeFile.FOLDER) {
-    const repository = this.$elementsExpandedRepository();
-    node.expanded = !node.expanded;
-
-    if (repository && node.expanded) {
-      const readmePath = `${node.path}/README.md`;
-
-      const element: IDocumentSelected = {
-        ...repository,
-        ...node,
-        expanded: node.expanded,
-        path: readmePath
-      };
-
-      this.$activeNodePath.set(readmePath);
-      this.$fileSelected.emit(element);
-      this.nestElementsInParent(node, repository);
-    }
-  }
-}
-
-public nestElementsInParent(
-  node: IDocumentationTreeItem,
-  repository: IResponseRepositories
-): void {
-  node.loading = true;
-  this._documentationService
-    .getListDocumentNest(repository, node.path)
-    .subscribe({
-      next: (response: any) => {
-        const resultsArray = Array.isArray(response) ? response : (response?.results ?? []);
-        node.children = { results: resultsArray } as any;
-        node.loading = false;
-
-        this.$elementsExpanded.update(current => {
-          if (!current) return current;
-          return {
-            ...current,
-            results: current.results.map(item =>
-              item.path === node.path ? { ...node } : item
-            )
-          };
-        });
-
-        setTimeout(() => {
-          this.restoreTreeSelection(repository, this.selectedPath());
-        }, 0);
-      },
-      error: () => {
-        node.loading = false;
-      }
-    });
-}
-
 private restoreTreeSelection(
   repository: IResponseRepositories | null = this.selectedRepository(),
   selectedPath: string | null = this.selectedPath()
 ): void {
   if (!repository || !selectedPath) {
-    return;
-  }
-
-  let decodedPath = decodeURIComponent(selectedPath).replace('?', '/').replace(/\/+$/, '');
-
-  const pathParts = decodedPath.split('/').filter(Boolean);
-  const lastPart = pathParts[pathParts.length - 1] ?? '';
-  const hasExplicitFile = lastPart.includes('.');
-
-  const activeDocumentPath = hasExplicitFile
-    ? decodedPath
-    : `${decodedPath}/README.md`;
-
-  if (this.$activeNodePath() === activeDocumentPath) {
     return;
   }
 
@@ -96,6 +27,16 @@ private restoreTreeSelection(
     }
   }
 
+  let decodedPath = decodeURIComponent(selectedPath).replace('?', '/').replace(/\/+$/, '');
+
+  const pathParts = decodedPath.split('/').filter(Boolean);
+  const lastPart = pathParts[pathParts.length - 1] ?? '';
+  const hasExplicitFile = lastPart.includes('.');
+
+  const activeDocumentPath = hasExplicitFile
+    ? decodedPath
+    : `${decodedPath}/README.md`;
+
   const folderPath = hasExplicitFile
     ? decodedPath.substring(0, decodedPath.lastIndexOf('/'))
     : decodedPath;
@@ -103,9 +44,9 @@ private restoreTreeSelection(
   this.$activeNodePath.set(activeDocumentPath);
 
   const nodes = this.$elementsExpanded()?.results ?? [];
-  const shouldEmitFile = !hasExplicitFile;
 
-  this.expandPathToSelection(folderPath, nodes, repository, activeDocumentPath, shouldEmitFile);
+  // Solo emitirá hacia el padre si el archivo aún no ha sido emitido
+  this.expandPathToSelection(folderPath, nodes, repository, activeDocumentPath, !hasExplicitFile);
 }
 
 private expandPathToSelection(
@@ -142,6 +83,7 @@ private expandPathToSelection(
     currentNodes = nextNode.children?.results ?? [];
   }
 
+  // Al finalizar toda la ruta, solo se emite el README si la URL no traía archivo
   if (targetDocumentPath && currentNodes.length > 0 && shouldEmitFile) {
     const readmeNode = currentNodes.find(
       item =>
