@@ -7,33 +7,27 @@ public nestElementsInParent(
     .getListDocumentNest(repository, node.path)
     .subscribe({
       next: (response: any) => {
-        // Normaliza si el backend devuelve un array directo o un objeto con .results
         const items = Array.isArray(response)
           ? response
           : (response?.results ?? []);
 
+        // Asignación directa como lo tenías originalmente
         node.children = items;
         node.loading = false;
 
-        // Fuerza la reactividad en el Signal clonando los resultados
-        this.$elementsExpanded.update(current => {
-          if (!current) return undefined;
-          return {
-            ...current,
-            results: [...current.results]
-          };
-        });
+        // Si tu modelo maneja results en children:
+        (node as any).results = items;
 
-        // Continúa la apertura recursiva para el siguiente nivel
-        this.restoreTreeSelection(repository, this.selectedPath());
+        // Espera un tick del ciclo de eventos para que Angular pinte los hijos en el DOM
+        setTimeout(() => {
+          this.restoreTreeSelection(repository, this.selectedPath());
+        }, 50);
       },
       error: () => {
         node.loading = false;
       }
     });
 }
-
-
 
 private expandPathToSelection(
   path: string,
@@ -48,7 +42,6 @@ private expandPathToSelection(
   let currentNodes = nodes;
 
   for (const segment of segments) {
-    // Busca coincidencia flexible por nombre o fragmento de path
     const nextNode = currentNodes.find(item => {
       const matchName = item.name === segment || (item as any).label === segment;
       const matchPath = item.path === segment || item.path?.endsWith(`/${segment}`);
@@ -59,30 +52,21 @@ private expandPathToSelection(
       return;
     }
 
-    // Si la carpeta encontrada aún está colapsada, se expande y se piden sus hijos
     if (!nextNode.expanded) {
       nextNode.expanded = true;
-
-      // Notifica el cambio de estado de apertura a la vista
-      this.$elementsExpanded.update(current => {
-        if (!current) return undefined;
-        return {
-          ...current,
-          results: [...current.results]
-        };
-      });
-
-      // Dispara la carga asíncrona; al terminar volverá a invocar restoreTreeSelection
+      // Llamar directamente a cargar los hijos sin disparar updates forzados al signal
       this.nestElementsInParent(nextNode, repository);
       return;
     }
 
-    // Si ya estaba expandida, extrae los hijos sin importar si vienen como array o como { results: [] }
+    // Extrae los hijos buscando en children o en results
     const rawChildren: any = nextNode.children;
     if (Array.isArray(rawChildren)) {
       currentNodes = rawChildren;
     } else if (rawChildren && Array.isArray(rawChildren.results)) {
       currentNodes = rawChildren.results;
+    } else if (Array.isArray((nextNode as any).results)) {
+      currentNodes = (nextNode as any).results;
     } else {
       currentNodes = [];
     }
