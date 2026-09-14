@@ -27,19 +27,17 @@ private restoreTreeSelection(
     }
   }
 
-  // 1. Decodificar y normalizar separadores
+  // 1. Decodificar caracteres especiales y unificar el separador ? a /
   let decodedPath = decodeURIComponent(selectedPath).replace('?', '/');
-
-  // Limpiar posibles barras duplicadas o finales
   decodedPath = decodedPath.replace(/\/+$/, '');
 
   const pathParts = decodedPath.split('/').filter(Boolean);
   const lastPart = pathParts[pathParts.length - 1] ?? '';
 
-  // 2. Si la ruta termina en carpeta, asumimos que su archivo activo es README.md
+  // 2. Si no termina explícitamente en archivo (.md), se apunta a README.md
   const hasExplicitFile = lastPart.includes('.');
-  const activeDocumentPath = hasExplicitFile 
-    ? decodedPath 
+  const activeDocumentPath = hasExplicitFile
+    ? decodedPath
     : `${decodedPath}/README.md`;
 
   const folderPath = hasExplicitFile
@@ -48,11 +46,8 @@ private restoreTreeSelection(
 
   const nodes = this.$elementsExpanded()?.results ?? [];
 
-  // Siempre expandimos hasta la carpeta destino
+  // Pasa el targetDocumentPath para seleccionar el README solo cuando termine de abrir carpetas
   this.expandPathToSelection(folderPath, nodes, repository, activeDocumentPath);
-
-  // Marcamos como activo el archivo resultante (sea el explícito o el README.md)
-  this.$activeNodePath.set(activeDocumentPath);
 }
 
 
@@ -71,7 +66,9 @@ private expandPathToSelection(
 
   for (const segment of segments) {
     const nextNode = currentNodes.find(
-      item => (item.name === segment || item.path?.endsWith('/' + segment)) && item.type === ETypeFile.FOLDER
+      item =>
+        (item.name === segment || item.path?.endsWith('/' + segment)) &&
+        item.type === ETypeFile.FOLDER
     );
 
     if (!nextNode) {
@@ -81,22 +78,26 @@ private expandPathToSelection(
     if (!nextNode.expanded) {
       nextNode.expanded = true;
       this.nestElementsInParent(nextNode, repository);
-      return; // Espera a que termine la llamada HTTP
+      return; // Detiene la ejecución esperando la respuesta HTTP
     }
 
     currentNodes = nextNode.children?.results ?? [];
   }
 
-  // Si ya llegó al final de los segmentos de carpetas y tenemos un documento objetivo
+  // Se ejecuta únicamente cuando todas las carpetas ya están abiertas y descargadas
   if (targetDocumentPath && currentNodes.length > 0) {
-    const readmeNode = currentNodes.find(
-      item => item.path === targetDocumentPath || 
-              item.name?.toLowerCase() === 'readme.md'
-    );
+    // CONDICIÓN ANTI-LOOP: si ya está activo este archivo, no vuelve a emitir
+    if (this.$activeNodePath() !== targetDocumentPath) {
+      const readmeNode = currentNodes.find(
+        item =>
+          item.path === targetDocumentPath ||
+          item.name?.toLowerCase() === 'readme.md'
+      );
 
-    if (readmeNode) {
-      // Emite el evento de selección para cargar el markdown en pantalla
-      this.selectFile(readmeNode);
+      if (readmeNode) {
+        this.$activeNodePath.set(targetDocumentPath);
+        this.selectFile(readmeNode);
+      }
     }
   }
 }
