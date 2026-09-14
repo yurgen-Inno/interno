@@ -1,3 +1,40 @@
+public nestElementsInParent(
+  node: IDocumentationTreeItem,
+  repository: IResponseRepositories
+): void {
+  node.loading = true;
+  this._documentationService
+    .getListDocumentNest(repository, node.path)
+    .subscribe({
+      next: (response: any) => {
+        // Normaliza si el backend devuelve un array directo o un objeto con .results
+        const items = Array.isArray(response)
+          ? response
+          : (response?.results ?? []);
+
+        node.children = items;
+        node.loading = false;
+
+        // Fuerza la reactividad en el Signal clonando los resultados
+        this.$elementsExpanded.update(current => {
+          if (!current) return undefined;
+          return {
+            ...current,
+            results: [...current.results]
+          };
+        });
+
+        // Continúa la apertura recursiva para el siguiente nivel
+        this.restoreTreeSelection(repository, this.selectedPath());
+      },
+      error: () => {
+        node.loading = false;
+      }
+    });
+}
+
+
+
 private expandPathToSelection(
   path: string,
   nodes: IDocumentationTreeItem[],
@@ -11,41 +48,43 @@ private expandPathToSelection(
   let currentNodes = nodes;
 
   for (const segment of segments) {
-    // Log para ver con qué nombre llega cada carpeta
-    console.log('Buscando segmento:', segment, 'en nodos actuales:', currentNodes);
-
-    // Comparación defensiva: revisa name, label o si el path termina con el segmento
+    // Busca coincidencia flexible por nombre o fragmento de path
     const nextNode = currentNodes.find(item => {
-      const nameMatch = (item.name === segment) || ((item as any).label === segment);
-      const pathMatch = item.path?.endsWith('/' + segment) || item.path === segment;
-      return (nameMatch || pathMatch) && item.type === ETypeFile.FOLDER;
+      const matchName = item.name === segment || (item as any).label === segment;
+      const matchPath = item.path === segment || item.path?.endsWith(`/${segment}`);
+      return (matchName || matchPath) && item.type === ETypeFile.FOLDER;
     });
 
     if (!nextNode) {
-      console.warn(`No se encontró el nodo para el segmento: "${segment}". Revisa las propiedades del nodo en el log anterior.`);
       return;
     }
 
+    // Si la carpeta encontrada aún está colapsada, se expande y se piden sus hijos
     if (!nextNode.expanded) {
       nextNode.expanded = true;
 
-      // Forzar recreación profunda del array para que Angular y Caribe detecten el cambio
-      this.$elementsExpanded.update(curr => {
-        if (!curr) return undefined;
+      // Notifica el cambio de estado de apertura a la vista
+      this.$elementsExpanded.update(current => {
+        if (!current) return undefined;
         return {
-          ...curr,
-          results: structuredClone ? structuredClone(curr.results) : JSON.parse(JSON.stringify(curr.results))
+          ...current,
+          results: [...current.results]
         };
       });
 
+      // Dispara la carga asíncrona; al terminar volverá a invocar restoreTreeSelection
       this.nestElementsInParent(nextNode, repository);
       return;
     }
 
-    // Asegurar compatibilidad con la estructura que retorna la API para los hijos
-    const childrenContainer: any = nextNode.children;
-    currentNodes = Array.isArray(childrenContainer) 
-      ? childrenContainer 
-      : (childrenContainer?.results ?? []);
+    // Si ya estaba expandida, extrae los hijos sin importar si vienen como array o como { results: [] }
+    const rawChildren: any = nextNode.children;
+    if (Array.isArray(rawChildren)) {
+      currentNodes = rawChildren;
+    } else if (rawChildren && Array.isArray(rawChildren.results)) {
+      currentNodes = rawChildren.results;
+    } else {
+      currentNodes = [];
+    }
   }
 }
