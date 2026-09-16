@@ -492,3 +492,85 @@ export class CreateDocumentComponent {
     <p>{{ $modalInformation().paragraph }}</p>
   </div>
 </nv-modal>
+
+
+
+
+
+import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+
+import { DocumentationService } from './documentation.service';
+import { IDocumentationResource, ICreateResourcePayload } from '@core/models/documentation-resource.model';
+import { environment } from '@environments/environment';
+
+describe('DocumentationService - Resources CRUD', () => {
+  let service: DocumentationService;
+  let httpMock: HttpTestingController;
+  const baseUrl = `${environment.apiBaseUrl}documentation/api/v1/resources`;
+
+  const mockResource: IDocumentationResource = {
+    organization: 'grupobancolombia-innersource',
+    repositoryName: 'NU5740001_Metrics_Doc',
+    name: 'Documentación Métricas',
+    description: 'Prueba unitaria',
+    url: 'https://github.com/repo',
+    lastSyncedAt: '2026-09-16T12:00:00Z',
+  };
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        DocumentationService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
+    });
+
+    service = TestBed.inject(DocumentationService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify(); // Asegura que no queden peticiones abiertas
+  });
+
+  it('debe listar los recursos (GET /resources)', () => {
+    service.getResources().subscribe((data) => {
+      expect(data.length).toBe(1);
+      expect(data[0].repositoryName).toBe('NU5740001_Metrics_Doc');
+    });
+
+    const req = httpMock.expectOne(baseUrl);
+    expect(req.request.method).toBe('GET');
+    req.flush([mockResource]);
+  });
+
+  it('debe crear un recurso (POST /resources)', () => {
+    const payload: ICreateResourcePayload = {
+      organization: 'grupobancolombia-innersource',
+      repositoryName: 'NU5740001_Metrics_Doc',
+    };
+
+    service.createResource(payload).subscribe((res) => {
+      expect(res.organization).toBe(payload.organization);
+    });
+
+    const req = httpMock.expectOne(baseUrl);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(payload);
+    req.flush(mockResource);
+  });
+
+  it('debe eliminar un recurso con la clave compuesta (DELETE /resources/{org}/{repo})', () => {
+    const org = 'grupobancolombia-innersource';
+    const repo = 'NU5740001_Metrics_Doc';
+
+    service.deleteResource(org, repo).subscribe();
+
+    const req = httpMock.expectOne(`${baseUrl}/${org}/${repo}`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+  });
+});
