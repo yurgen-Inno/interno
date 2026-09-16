@@ -1,7 +1,7 @@
 import { ActivatedRoute, Router } from '@angular/router';
 import { IDocumentationResource } from '@core/models/documents.model';
 import { DocumentationService } from '@core/services/documentation/services/documentation.service';
-import { createRoutingFactory, Spectator } from '@ngneat/spectator/jest';
+import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
 import { of, throwError } from 'rxjs';
 import { CreateDocumentComponent } from './create-document.component';
 
@@ -23,18 +23,26 @@ describe('CreateDocumentComponent', () => {
     updateResource: jest.fn().mockReturnValue(of(mockResource)),
   };
 
+  const mockRouter = {
+    navigate: jest.fn(),
+  };
+
+  const mockQueryParamMap = {
+    get: jest.fn().mockReturnValue(null),
+  };
+
   const mockActivatedRoute = {
     snapshot: {
-      queryParamMap: {
-        get: jest.fn().mockReturnValue(null),
-      },
+      queryParamMap: mockQueryParamMap,
     },
   };
 
-  const createComponent = createRoutingFactory({
+  const createComponent = createComponentFactory({
     component: CreateDocumentComponent,
+    shallow: true,
     providers: [
       { provide: DocumentationService, useValue: mockDocService },
+      { provide: Router, useValue: mockRouter },
       { provide: ActivatedRoute, useValue: mockActivatedRoute },
     ],
     detectChanges: false,
@@ -45,7 +53,7 @@ describe('CreateDocumentComponent', () => {
     mockDocService.getResourceById.mockReturnValue(of(mockResource));
     mockDocService.createResource.mockReturnValue(of(mockResource));
     mockDocService.updateResource.mockReturnValue(of(mockResource));
-    mockActivatedRoute.snapshot.queryParamMap.get.mockReturnValue(null);
+    mockQueryParamMap.get.mockReturnValue(null);
     spectator = createComponent();
   });
 
@@ -70,9 +78,6 @@ describe('CreateDocumentComponent', () => {
     });
 
     it('should call createResource and navigate on valid form submit', () => {
-      const router = spectator.inject(Router);
-      jest.spyOn(router, 'navigate');
-
       spectator.component.resourceForm.setValue({
         organization: 'grupobancolombia-innersource',
         repositoryName: 'NU5740001_Metrics_Doc',
@@ -90,7 +95,7 @@ describe('CreateDocumentComponent', () => {
         description: 'Desc',
         url: 'https://github.com/repo',
       });
-      expect(router.navigate).toHaveBeenCalledWith(['/admin/list-documents']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin/list-documents']);
     });
 
     it('should set errorMessage when createResource fails', () => {
@@ -115,7 +120,7 @@ describe('CreateDocumentComponent', () => {
 
   describe('Edit Mode', () => {
     beforeEach(() => {
-      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation((key: string) => {
+      mockQueryParamMap.get.mockImplementation((key: string) => {
         if (key === 'org') return 'grupobancolombia-innersource';
         if (key === 'repo') return 'NU5740001_Metrics_Doc';
         if (key === 'mode') return 'edit';
@@ -138,9 +143,6 @@ describe('CreateDocumentComponent', () => {
     });
 
     it('should call updateResource with editable fields only on submit', () => {
-      const router = spectator.inject(Router);
-      jest.spyOn(router, 'navigate');
-
       spectator.component.resourceForm.patchValue({
         name: 'Nombre Editado',
         description: 'Nueva descripción',
@@ -158,13 +160,13 @@ describe('CreateDocumentComponent', () => {
           url: 'https://github.com/updated',
         }
       );
-      expect(router.navigate).toHaveBeenCalledWith(['/admin/list-documents']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin/list-documents']);
     });
   });
 
   describe('View Mode', () => {
     beforeEach(() => {
-      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation((key: string) => {
+      mockQueryParamMap.get.mockImplementation((key: string) => {
         if (key === 'org') return 'grupobancolombia-innersource';
         if (key === 'repo') return 'NU5740001_Metrics_Doc';
         if (key === 'mode') return 'view';
@@ -191,12 +193,10 @@ describe('CreateDocumentComponent', () => {
     it('should navigate back to list-documents', () => {
       spectator.component.ngOnInit();
       spectator.detectChanges();
-      const router = spectator.inject(Router);
-      jest.spyOn(router, 'navigate');
 
       spectator.component.onCancel();
 
-      expect(router.navigate).toHaveBeenCalledWith(['/admin/list-documents']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin/list-documents']);
     });
   });
 });
