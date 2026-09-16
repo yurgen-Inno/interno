@@ -27,40 +27,45 @@ describe('CreateDocumentComponent', () => {
     navigate: jest.fn(),
   };
 
-  const mockQueryParamMap = {
-    get: jest.fn().mockReturnValue(null),
-  };
-
-  const mockActivatedRoute = {
-    snapshot: {
-      queryParamMap: mockQueryParamMap,
-    },
-  };
-
   const createComponent = createComponentFactory({
     component: CreateDocumentComponent,
     shallow: true,
     providers: [
       { provide: DocumentationService, useValue: mockDocService },
       { provide: Router, useValue: mockRouter },
-      { provide: ActivatedRoute, useValue: mockActivatedRoute },
     ],
     detectChanges: false,
   });
+
+  const setupComponent = (queryParams: Record<string, string | null> = {}) => {
+    spectator = createComponent({
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {
+              queryParamMap: {
+                get: (key: string) => queryParams[key] ?? null,
+              },
+            },
+          },
+        },
+      ],
+    });
+    spectator.component.ngOnInit();
+    spectator.detectChanges();
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockDocService.getResourceById.mockReturnValue(of(mockResource));
     mockDocService.createResource.mockReturnValue(of(mockResource));
     mockDocService.updateResource.mockReturnValue(of(mockResource));
-    mockQueryParamMap.get.mockReturnValue(null);
-    spectator = createComponent();
   });
 
   describe('Create Mode (default)', () => {
     beforeEach(() => {
-      spectator.component.ngOnInit();
-      spectator.detectChanges();
+      setupComponent();
     });
 
     it('should initialize in create mode with enabled fields', () => {
@@ -120,15 +125,11 @@ describe('CreateDocumentComponent', () => {
 
   describe('Edit Mode', () => {
     beforeEach(() => {
-      mockQueryParamMap.get.mockImplementation((key: string) => {
-        if (key === 'org') return 'grupobancolombia-innersource';
-        if (key === 'repo') return 'NU5740001_Metrics_Doc';
-        if (key === 'mode') return 'edit';
-        return null;
+      setupComponent({
+        org: 'grupobancolombia-innersource',
+        repo: 'NU5740001_Metrics_Doc',
+        mode: 'edit',
       });
-
-      spectator.component.ngOnInit();
-      spectator.detectChanges();
     });
 
     it('should initialize in edit mode and disable identity fields', () => {
@@ -166,15 +167,11 @@ describe('CreateDocumentComponent', () => {
 
   describe('View Mode', () => {
     beforeEach(() => {
-      mockQueryParamMap.get.mockImplementation((key: string) => {
-        if (key === 'org') return 'grupobancolombia-innersource';
-        if (key === 'repo') return 'NU5740001_Metrics_Doc';
-        if (key === 'mode') return 'view';
-        return null;
+      setupComponent({
+        org: 'grupobancolombia-innersource',
+        repo: 'NU5740001_Metrics_Doc',
+        mode: 'view',
       });
-
-      spectator.component.ngOnInit();
-      spectator.detectChanges();
     });
 
     it('should disable entire form when in view mode', () => {
@@ -191,8 +188,7 @@ describe('CreateDocumentComponent', () => {
 
   describe('onCancel', () => {
     it('should navigate back to list-documents', () => {
-      spectator.component.ngOnInit();
-      spectator.detectChanges();
+      setupComponent();
 
       spectator.component.onCancel();
 
