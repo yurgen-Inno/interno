@@ -23,10 +23,19 @@ describe('CreateDocumentComponent', () => {
     updateResource: jest.fn().mockReturnValue(of(mockResource)),
   };
 
+  const mockActivatedRoute = {
+    snapshot: {
+      queryParamMap: {
+        get: jest.fn().mockReturnValue(null),
+      },
+    },
+  };
+
   const createComponent = createRoutingFactory({
     component: CreateDocumentComponent,
     providers: [
       { provide: DocumentationService, useValue: mockDocService },
+      { provide: ActivatedRoute, useValue: mockActivatedRoute },
     ],
     detectChanges: false,
   });
@@ -36,24 +45,13 @@ describe('CreateDocumentComponent', () => {
     mockDocService.getResourceById.mockReturnValue(of(mockResource));
     mockDocService.createResource.mockReturnValue(of(mockResource));
     mockDocService.updateResource.mockReturnValue(of(mockResource));
+    mockActivatedRoute.snapshot.queryParamMap.get.mockReturnValue(null);
+    spectator = createComponent();
   });
 
   describe('Create Mode (default)', () => {
     beforeEach(() => {
-      spectator = createComponent({
-        providers: [
-          {
-            provide: ActivatedRoute,
-            useValue: {
-              snapshot: {
-                queryParamMap: {
-                  get: jest.fn().mockReturnValue(null),
-                },
-              },
-            },
-          },
-        ],
-      });
+      spectator.component.ngOnInit();
       spectator.detectChanges();
     });
 
@@ -117,25 +115,14 @@ describe('CreateDocumentComponent', () => {
 
   describe('Edit Mode', () => {
     beforeEach(() => {
-      spectator = createComponent({
-        providers: [
-          {
-            provide: ActivatedRoute,
-            useValue: {
-              snapshot: {
-                queryParamMap: {
-                  get: jest.fn((key: string) => {
-                    if (key === 'org') return 'grupobancolombia-innersource';
-                    if (key === 'repo') return 'NU5740001_Metrics_Doc';
-                    if (key === 'mode') return 'edit';
-                    return null;
-                  }),
-                },
-              },
-            },
-          },
-        ],
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation((key: string) => {
+        if (key === 'org') return 'grupobancolombia-innersource';
+        if (key === 'repo') return 'NU5740001_Metrics_Doc';
+        if (key === 'mode') return 'edit';
+        return null;
       });
+
+      spectator.component.ngOnInit();
       spectator.detectChanges();
     });
 
@@ -177,25 +164,14 @@ describe('CreateDocumentComponent', () => {
 
   describe('View Mode', () => {
     beforeEach(() => {
-      spectator = createComponent({
-        providers: [
-          {
-            provide: ActivatedRoute,
-            useValue: {
-              snapshot: {
-                queryParamMap: {
-                  get: jest.fn((key: string) => {
-                    if (key === 'org') return 'grupobancolombia-innersource';
-                    if (key === 'repo') return 'NU5740001_Metrics_Doc';
-                    if (key === 'mode') return 'view';
-                    return null;
-                  }),
-                },
-              },
-            },
-          },
-        ],
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation((key: string) => {
+        if (key === 'org') return 'grupobancolombia-innersource';
+        if (key === 'repo') return 'NU5740001_Metrics_Doc';
+        if (key === 'mode') return 'view';
+        return null;
       });
+
+      spectator.component.ngOnInit();
       spectator.detectChanges();
     });
 
@@ -213,7 +189,7 @@ describe('CreateDocumentComponent', () => {
 
   describe('onCancel', () => {
     it('should navigate back to list-documents', () => {
-      spectator = createComponent();
+      spectator.component.ngOnInit();
       spectator.detectChanges();
       const router = spectator.inject(Router);
       jest.spyOn(router, 'navigate');
