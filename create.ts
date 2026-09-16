@@ -290,3 +290,49 @@ public optionSelected(event: any, document: IRowDocument): void {
     });
   }
 }
+
+
+
+
+
+
+
+
+
+--------
+
+// En list-documents.component.ts
+
+public onTableOptionSelect(event: any): void {
+  // Maneja si el evento viene empaquetado desde list-all-documents
+  this.optionSelected(event.option ?? event, event.row ?? event.rowData);
+}
+
+public optionSelected(event: any, document: IRowDocument): void {
+  // 1. Extraer la opción seleccionada (sea string o propiedad optionSelected / id)
+  const option = event?.optionSelected ?? event?.id ?? event;
+  
+  // 2. Extraer la fila correcta
+  const row = document ?? event?.rowData ?? event?.row;
+
+  // OPT2: Eliminar
+  if (option === EEventSelectItem.OPT2 || option === 'OPT2') {
+    this.documentToDelete = row;
+    this.$modalInformation.update((prev) => ({
+      ...prev,
+      paragraph: `¿Estás seguro de que deseas eliminar el recurso "${row.repositoryName}" de "${row.organization}"?`,
+    }));
+    this.modal()?.showModal();
+    return;
+  }
+
+  // OPT3 (o OPT1): Editar
+  if (option === EEventSelectItem.OPT3 || option === 'OPT3' || option === EEventSelectItem.OPT1 || option === 'OPT1') {
+    this.router.navigate(['/admin/create-document'], {
+      queryParams: {
+        org: row.organization,
+        repo: row.repositoryName,
+      },
+    });
+  }
+}
