@@ -336,3 +336,171 @@ public optionSelected(event: any, document: IRowDocument): void {
     });
   }
 }
+
+
+
+
+
+------------------
+
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.form-card {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  padding: 2.5rem;
+  margin-top: 1.5rem;
+  box-sizing: border-box;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.75rem 2rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+
+  &.form-group-full {
+    grid-column: 1 / -1;
+  }
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2c2a29;
+  margin-bottom: 0.5rem;
+
+  .required {
+    color: #e02424;
+    font-weight: bold;
+    margin-left: 2px;
+  }
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 0.875rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #2c2a29;
+  background-color: #ffffff;
+  border: 1px solid #c4c4c4;
+  border-radius: 4px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:focus {
+    border-color: #fdc300;
+    box-shadow: 0 0 0 3px rgba(253, 195, 0, 0.25);
+  }
+
+  &:disabled {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    cursor: not-allowed;
+    border-color: #e5e7eb;
+  }
+
+  &.is-invalid {
+    border-color: #e02424;
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(224, 36, 36, 0.25);
+    }
+  }
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.feedback-error {
+  display: block;
+  font-size: 0.775rem;
+  color: #e02424;
+  margin-top: 0.35rem;
+}
+
+.form-alert {
+  padding: 0.85rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+
+  &-danger {
+    background-color: #fdf2f2;
+    color: #9b1c1c;
+    border: 1px solid #f8b4b4;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #edf2f7;
+}
+
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.btn-cancel {
+  background-color: #e5e7eb;
+  color: #374151;
+
+  &:hover:not(:disabled) {
+    background-color: #d1d5db;
+  }
+}
+
+.btn-save {
+  background-color: #fdc300;
+  color: #1f2937;
+
+  &:hover:not(:disabled) {
+    background-color: #e5b000;
+  }
+}
