@@ -575,3 +575,121 @@ describe('DocumentationService - Resources CRUD', () => {
   });
 });
 
+
+
+/////
+
+<bc-table-header title="Recursos de Documentación">
+      <em
+        class="bc-icon"
+        bc-tooltip
+        [bcTooltipPosition]="'left'"
+        [bcTooltipText]="'Aquí puedes ver y gestionar los repositorios fuente configurados para la documentación.'"
+      >
+        info-circle
+      </em>
+    </bc-table-header>
+
+    <bc-table-content>
+      <table
+        caption="tabla"
+        bc-table
+        [selection]="'false'"
+        [sort]="'true'"
+        [pairPaginators]="'false'"
+        [dropdownhtml]="'true'"
+      >
+        <thead>
+          <tr>
+            <th scope="row" bc-cell scope="col">Repositorio</th>
+            <th scope="row" bc-cell scope="col" [fixed]="'true'">Nombre visible</th>
+            <th scope="row" bc-cell scope="col">Organización</th>
+            <th scope="row" bc-cell scope="col">URL</th>
+            <th scope="row" bc-cell scope="col">Última sincronización</th>
+            <th scope="row" bc-cell scope="col" type="action"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of $data(); track row.organization + '/' + row.repositoryName) {
+            <tr>
+              <!-- 1. Repositorio -->
+              <td bc-cell>
+                <strong>{{ row.repositoryName }}</strong>
+              </td>
+
+              <!-- 2. Nombre visible -->
+              <td bc-cell>
+                <span class="cell-truncate" [title]="row.name">
+                  {{ row.name }}
+                </span>
+              </td>
+
+              <!-- 3. Organización -->
+              <td bc-cell>
+                {{ row.organization }}
+              </td>
+
+              <!-- 4. URL de GitHub -->
+              <td bc-cell>
+                @if (row.url) {
+                  <a [href]="row.url" target="_blank" rel="noopener noreferrer" class="bc-link">
+                    Ver repositorio
+                  </a>
+                } @else {
+                  <span class="bc-text-muted">-</span>
+                }
+              </td>
+
+              <!-- 5. Última sincronización -->
+              <td bc-cell>
+                <span class="cell-truncate" [title]="row.lastSyncedAtFormatted">
+                  {{ row.lastSyncedAtFormatted }}
+                </span>
+              </td>
+
+              <!-- 6. Acciones -->
+              <td bc-cell type="action">
+                <bc-table-dropdown
+                  [row]="row"
+                  [alternativeOptionId]="'true'"
+                  [options]="row.menu || []"
+                  (onChange)="onOptionSelected($event, row)"
+                ></bc-table-dropdown>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </bc-table-content>
+
+
+    ///
+
+    public readonly $documentsViewModels = computed(() => {
+  return this.resourceDocuments.value().map((data) => {
+    const menu = TABLE_OPTIONS_DOCUMENTS;
+
+    return {
+      ...data,
+      // Identificadores y títulos
+      repositoryName: data.repositoryName,
+      name: data.name || data.repositoryName,
+      organization: data.organization,
+      url: data.url ?? '',
+      // Si lastSyncedAt viene nulo, mostramos texto legible
+      lastSyncedAtFormatted: data.lastSyncedAt
+        ? new Intl.DateTimeFormat('es-CO', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }).format(new Date(data.lastSyncedAt))
+        : 'Sin sincronizar',
+      // Compatibilidad con IRowDocument para no romper el tipado
+      id: `${data.organization}/${data.repositoryName}`,
+      title: data.name || data.repositoryName,
+      region: data.organization,
+      created: data.lastSyncedAt ? new Date(data.lastSyncedAt) : new Date(),
+      modified: data.lastSyncedAt ? new Date(data.lastSyncedAt) : new Date(),
+      menu,
+    };
+  });
+});
