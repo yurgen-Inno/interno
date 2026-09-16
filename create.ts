@@ -1,12 +1,10 @@
 // src/app/features/admin/components/list-all-documents/list-all-documents.component.ts
 
 public onOptionSelected(event: any, row: IRowDocument): void {
-  console.log('1. Dropdown disparó:', event, 'en la fila:', row);
+  // Leemos con y sin typo, o tomamos el id/string directo
+  const rawOption = event?.optionSeleted ?? event?.optionSelected ?? event?.id ?? event;
+  const optionId = typeof rawOption === 'string' ? rawOption.toUpperCase() : rawOption;
 
-  // Extraemos el identificador exacto de la opción seleccionada
-  const optionId = typeof event === 'string' ? event : (event?.id ?? event?.optionSelected ?? event?.value);
-
-  // Emitimos un formato estándar y garantizado
   this.$optionSelect.emit({
     optionSelected: optionId,
     rowData: row,
@@ -18,20 +16,24 @@ public onOptionSelected(event: any, row: IRowDocument): void {
 
 
 
-($optionSelect)="onTableOptionSelect($event)"
-
 
 
 // src/app/features/admin/pages/list-documents/list-documents.component.ts
 
 public onTableOptionSelect(event: any): void {
-  console.log('2. Recibido en ListDocumentsComponent:', event);
+  // Extraemos la opción resolviendo el typo y normalizando a mayúsculas
+  const rawOption = 
+    event?.optionSelected ?? 
+    event?.optionSeleted ?? 
+    event?.option?.optionSelected ?? 
+    event?.option?.optionSeleted ?? 
+    event?.id ?? 
+    event;
 
-  // Soporta tanto si viene directo o anidado
-  const selectedOption = event?.optionSelected ?? event?.option?.id ?? event?.id ?? event;
+  const selectedOption = typeof rawOption === 'string' ? rawOption.toUpperCase() : rawOption;
   const row = event?.rowData ?? event?.row ?? event;
 
-  console.log('Opción elegida:', selectedOption, 'Fila:', row);
+  console.log('Opción procesada:', selectedOption, 'Fila:', row);
 
   // OPT2: Eliminar
   if (selectedOption === 'OPT2' || selectedOption === EEventSelectItem.OPT2) {
@@ -44,14 +46,13 @@ public onTableOptionSelect(event: any): void {
     return;
   }
 
-  // OPT1 o OPT3: Editar
+  // OPT3 o OPT1: Editar
   if (
     selectedOption === 'OPT3' ||
     selectedOption === EEventSelectItem.OPT3 ||
     selectedOption === 'OPT1' ||
     selectedOption === EEventSelectItem.OPT1
   ) {
-    console.log('Navegando a editar con:', row.organization, row.repositoryName);
     this.router.navigate(['/admin/create-document'], {
       queryParams: {
         org: row.organization,
