@@ -504,3 +504,123 @@ textarea.form-control {
     background-color: #e5b000;
   }
 }
+
+
+-*-------------
+
+
+<section class="bc-container bc-mt-5">
+  <app-page-header
+    [$title]="isEditMode() ? 'Editar recurso de documentación' : 'Crear recurso de documentación'"
+    [$subtitle]="isEditMode() ? 'Actualizar información del repositorio' : 'Registrar nuevo repositorio'"
+    [$backRoute]="'/admin/list-documents'"
+  />
+
+  @if (errorMessage()) {
+    <div class="form-alert form-alert-danger" role="alert">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <div class="form-card">
+    <form [formGroup]="resourceForm" (ngSubmit)="onSubmit()">
+      <div class="form-grid">
+        <!-- Organización -->
+        <div class="form-group">
+          <label class="form-label" for="organization">
+            Organización <span class="required">*</span>
+          </label>
+          <input
+            id="organization"
+            type="text"
+            formControlName="organization"
+            class="form-control"
+            [class.is-invalid]="resourceForm.get('organization')?.touched && resourceForm.get('organization')?.invalid"
+            placeholder="ej. grupobancolombia-innersource"
+          />
+          @if (resourceForm.get('organization')?.touched && resourceForm.get('organization')?.hasError('required')) {
+            <span class="feedback-error">La organización es requerida.</span>
+          }
+        </div>
+
+        <!-- Nombre del Repositorio -->
+        <div class="form-group">
+          <label class="form-label" for="repositoryName">
+            Nombre del Repositorio <span class="required">*</span>
+          </label>
+          <input
+            id="repositoryName"
+            type="text"
+            formControlName="repositoryName"
+            class="form-control"
+            [class.is-invalid]="resourceForm.get('repositoryName')?.touched && resourceForm.get('repositoryName')?.invalid"
+            placeholder="ej. NU5740001_Metrics_Doc"
+          />
+          @if (resourceForm.get('repositoryName')?.touched && resourceForm.get('repositoryName')?.hasError('required')) {
+            <span class="feedback-error">El nombre del repositorio es requerido.</span>
+          }
+        </div>
+
+        <!-- Nombre Visible -->
+        <div class="form-group">
+          <label class="form-label" for="name">Nombre visible</label>
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            class="form-control"
+            placeholder="ej. Documentación Métricas Corporativas"
+          />
+        </div>
+
+        <!-- URL de GitHub -->
+        <div class="form-group">
+          <label class="form-label" for="url">URL del repositorio</label>
+          <input
+            id="url"
+            type="url"
+            formControlName="url"
+            class="form-control"
+            [class.is-invalid]="resourceForm.get('url')?.touched && resourceForm.get('url')?.invalid"
+            placeholder="https://github.com/..."
+          />
+          @if (resourceForm.get('url')?.touched && resourceForm.get('url')?.hasError('pattern')) {
+            <span class="feedback-error">Debe ser una URL válida (http:// o https://).</span>
+          }
+        </div>
+
+        <!-- Descripción (ancho completo) -->
+        <div class="form-group form-group-full">
+          <label class="form-label" for="description">Descripción</label>
+          <textarea
+            id="description"
+            formControlName="description"
+            class="form-control"
+            rows="4"
+            placeholder="Describe brevemente el alcance de esta documentación..."
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn-action btn-cancel"
+          (click)="onCancel()"
+          [disabled]="isSubmitting()"
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="submit"
+          class="btn-action btn-save"
+          [disabled]="resourceForm.invalid || isSubmitting()"
+        >
+          {{ isSubmitting() ? 'Guardando...' : (isEditMode() ? 'Actualizar recurso' : 'Guardar recurso') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
