@@ -1,21 +1,11 @@
-export interface IPaginatorCustomEvent {
-  detail?: {
-    page?: number;
-    itemsPerPage?: number;
-  };
-}
-
-
-
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { BcTableOptionMenu } from '@bancolombia/design-system-behaviors';
-import { BcPaginatorV2Module } from '@bancolombia/design-system-web/bc-paginator-v2';
+import { BcPaginatorModule } from '@bancolombia/design-system-web/bc-paginator';
 import { BcTableModule } from '@bancolombia/design-system-web/bc-table';
 import { BcTooltipModule } from '@bancolombia/design-system-web/bc-tooltip';
 import {
   IDropdownOptionEvent,
   IEventSelectDocument,
-  IPaginatorCustomEvent,
   IRowDocument,
   ITableDocuments,
 } from '@core/models/documents.model';
@@ -23,7 +13,7 @@ import {
 @Component({
   selector: 'app-list-all-documents',
   standalone: true,
-  imports: [BcTableModule, BcTooltipModule, BcPaginatorV2Module],
+  imports: [BcTableModule, BcTooltipModule, BcPaginatorModule],
   templateUrl: './list-all-documents.component.html',
   styleUrl: './list-all-documents.component.scss',
 })
@@ -33,33 +23,14 @@ export class ListAllDocumentsComponent {
 
   readonly $optionSelect = output<ITableDocuments>();
 
-  public readonly $currentPage = signal<number>(1);
-  public readonly $itemsPerPage = signal<number>(10);
-
-  public readonly $paginatedData = computed<IRowDocument[]>(() => {
-    const data = this.$data();
-    const startIndex = (this.$currentPage() - 1) * this.$itemsPerPage();
-    return data.slice(startIndex, startIndex + this.$itemsPerPage());
-  });
-
-  public onPageChange(event: Event): void {
-    const customEvent = event as unknown as IPaginatorCustomEvent;
-    const selectedPage = customEvent.detail?.page;
-
-    if (!selectedPage) {
-      return;
-    }
-
-    this.$currentPage.set(selectedPage);
-  }
-
   public onOptionSelected(
     event: IDropdownOptionEvent | string,
     row: IRowDocument
   ): void {
-    const rawOption = typeof event === 'string'
-      ? event
-      : event?.optionSeleted ?? event?.optionSelected ?? event?.id ?? event?.value ?? '';
+    const rawOption =
+      typeof event === 'string'
+        ? event
+        : event?.optionSeleted ?? event?.optionSelected ?? event?.id ?? event?.value ?? '';
 
     const optionPayload: IEventSelectDocument = {
       optionSeleted: rawOption.toUpperCase(),
@@ -72,10 +43,6 @@ export class ListAllDocumentsComponent {
     });
   }
 }
-
-
-
-
 
 
 
@@ -118,7 +85,7 @@ export class ListAllDocumentsComponent {
           </thead>
 
           <tbody>
-            @for (row of $paginatedData(); track row.organization + '/' + row.repositoryName) {
+            @for (row of $data(); track row.organization + '/' + row.repositoryName) {
               <tr>
                 <td bc-cell>
                   <strong>{{ row.repositoryName }}</strong>
@@ -157,13 +124,8 @@ export class ListAllDocumentsComponent {
         </table>
       </bc-table-content>
 
-      @if ($data().length > $itemsPerPage()) {
-        <bc-paginator-v2
-          [totalItems]="$data().length"
-          [itemsPerPage]="$itemsPerPage()"
-          (changePage)="onPageChange($event)"
-        ></bc-paginator-v2>
-      }
+      <bc-paginator></bc-paginator>
+
     </bc-table-container>
   } @placeholder {
     <div class="bc-col-12 bc-p-4">
