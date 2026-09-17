@@ -1,3 +1,12 @@
+export interface IPaginatorCustomEvent {
+  detail?: {
+    page?: number;
+    itemsPerPage?: number;
+  };
+}
+
+
+
 import { Component, computed, input, output, signal } from '@angular/core';
 import { BcTableOptionMenu } from '@bancolombia/design-system-behaviors';
 import { BcPaginatorV2Module } from '@bancolombia/design-system-web/bc-paginator-v2';
@@ -6,15 +15,10 @@ import { BcTooltipModule } from '@bancolombia/design-system-web/bc-tooltip';
 import {
   IDropdownOptionEvent,
   IEventSelectDocument,
+  IPaginatorCustomEvent,
   IRowDocument,
   ITableDocuments,
 } from '@core/models/documents.model';
-
-export interface IBcPaginatorChangeEvent {
-  page?: number;
-  itemsPerPage?: number;
-  totalPages?: number;
-}
 
 @Component({
   selector: 'app-list-all-documents',
@@ -38,19 +42,15 @@ export class ListAllDocumentsComponent {
     return data.slice(startIndex, startIndex + this.$itemsPerPage());
   });
 
-  public onPageChange(event: IBcPaginatorChangeEvent | number): void {
-    if (typeof event === 'number') {
-      this.$currentPage.set(event);
+  public onPageChange(event: Event): void {
+    const customEvent = event as unknown as IPaginatorCustomEvent;
+    const selectedPage = customEvent.detail?.page;
+
+    if (!selectedPage) {
       return;
     }
 
-    if (event?.page) {
-      this.$currentPage.set(event.page);
-    }
-
-    if (event?.itemsPerPage) {
-      this.$itemsPerPage.set(event.itemsPerPage);
-    }
+    this.$currentPage.set(selectedPage);
   }
 
   public onOptionSelected(
@@ -72,6 +72,10 @@ export class ListAllDocumentsComponent {
     });
   }
 }
+
+
+
+
 
 
 
@@ -157,7 +161,6 @@ export class ListAllDocumentsComponent {
         <bc-paginator-v2
           [totalItems]="$data().length"
           [itemsPerPage]="$itemsPerPage()"
-          [pageActive]="$currentPage()"
           (changePage)="onPageChange($event)"
         ></bc-paginator-v2>
       }
