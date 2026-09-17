@@ -1,34 +1,3 @@
-import { FormControl } from '@angular/forms';
-
-export enum EResourceViewMode {
-  VIEW = 'view',
-  EDIT = 'edit',
-}
-
-export interface IResourceForm {
-  organization: FormControl<string>;
-  repositoryName: FormControl<string>;
-  name: FormControl<string>;
-  description: FormControl<string>;
-  url: FormControl<string>;
-}
-
-export interface IApiHttpError {
-  error?: {
-    message?: string;
-  };
-}
-
-export interface IDropdownOptionEvent {
-  optionSeleted?: string;
-  optionSelected?: string;
-  id?: string;
-  value?: string;
-}
-
-
------------------
-
 import { Component, input, output } from '@angular/core';
 import { BcTableOptionMenu } from '@bancolombia/design-system-behaviors';
 import { BcPaginatorV2Module } from '@bancolombia/design-system-web/bc-paginator-v2';
@@ -58,10 +27,9 @@ export class ListAllDocumentsComponent {
     event: IDropdownOptionEvent | string,
     row: IRowDocument
   ): void {
-    const rawOption =
-      typeof event === 'string'
-        ? event
-        : event.optionSeleted ?? event.optionSelected ?? event.id ?? event.value ?? '';
+    const rawOption = typeof event === 'string'
+      ? event
+      : event?.optionSeleted ?? event?.optionSelected ?? event?.id ?? event?.value ?? '';
 
     const optionPayload: IEventSelectDocument = {
       optionSeleted: rawOption.toUpperCase(),
@@ -77,9 +45,100 @@ export class ListAllDocumentsComponent {
 
 
 
+-------
 
------------------
 
+<div class="bc-row">
+  @defer (on viewport; prefetch on idle) {
+    <bc-table-container
+      class="bc-col-12"
+      [dataTable]="$data()"
+      [cellOptions]="$cellOptions()"
+    >
+      <bc-table-header title="Dashboards disponibles">
+        <em
+          class="bc-icon"
+          bc-tooltip
+          [bcTooltipPosition]="'left'"
+          [bcTooltipText]="'Aquí puedes ver y gestionar los dashboards disponibles en las regiones a las que tienes acceso. Puedes crear o eliminar dashboards según tus permisos.'"
+        >
+          info-circle
+        </em>
+      </bc-table-header>
+
+      <bc-table-content>
+        <table
+          caption="tabla"
+          bc-table
+          [selection]="'false'"
+          [sort]="'true'"
+          [pairPaginators]="'false'"
+          [dropdownHtml]="'true'"
+        >
+          <thead>
+            <tr>
+              <th scope="row" bc-cell scope="col">Repositorio</th>
+              <th scope="row" bc-cell scope="col" [fixed]="'true'">Nombre visible</th>
+              <th scope="row" bc-cell scope="col">Organización</th>
+              <th scope="row" bc-cell scope="col">URL</th>
+              <th scope="row" bc-cell scope="col">Última sincronización</th>
+              <th scope="row" bc-cell scope="col" type="action"></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (row of $data(); track row.organization + '/' + row.repositoryName) {
+              <tr>
+                <td bc-cell>
+                  <strong>{{ row.repositoryName }}</strong>
+                </td>
+                <td bc-cell>
+                  <span class="cell-truncate" [title]="row.name">{{ row.name }}</span>
+                </td>
+                <td bc-cell>
+                  {{ row.organization }}
+                </td>
+                <td bc-cell>
+                  @if (row.url) {
+                    <a [href]="row.url" target="_blank" rel="noopener noreferrer" class="bc-link">
+                      Ver repositorio
+                    </a>
+                  } @else {
+                    <span class="bc-text-muted">-</span>
+                  }
+                </td>
+                <td bc-cell>
+                  <span class="cell-truncate" [title]="row.lastSyncedAtFormatted">
+                    {{ row.lastSyncedAtFormatted }}
+                  </span>
+                </td>
+                <td bc-cell type="action">
+                  <bc-table-dropdown
+                    [row]="row"
+                    [alternativeOptionId]="true"
+                    [options]="row.menu || []"
+                    (onChange)="onOptionSelected($event, row)"
+                  ></bc-table-dropdown>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </bc-table-content>
+    </bc-table-container>
+  } @placeholder {
+    <div class="bc-col-12 bc-p-4">
+      <div style="height: 400px; width: 100%; background: rgba(128, 128, 128, 0.1); border-radius: 3px;"></div>
+    </div>
+  } @loading (after 100ms; minimum 500ms) {
+    <div class="bc-col-12 bc-p-4">
+      <div style="height: 400px; width: 100%; background: rgba(128, 128, 128, 0.1); border-radius: 3px; animation: pulse 1.5s infinite;"></div>
+    </div>
+  }
+</div>
+
+
+-------------
 
 
 import {
@@ -161,7 +220,7 @@ export class ListDocumentsComponent implements OnInit, OnDestroy {
   public readonly modal = viewChild<ModalComponent>('modal');
   public readonly $documentToDelete = signal<IDocumentationResource | null>(null);
 
-  public readonly cellOption: BcTableOptionMenu[] = TABLE_DOCUMENT_OPTIONS;
+  public readonly $cellOptions = signal<BcTableOptionMenu[]>(TABLE_DOCUMENT_OPTIONS);
 
   public readonly $modalInformation = signal<Partial<ModalConfig>>(
     MODAL_CONFIRM_DELETE_DOCUMENT
@@ -175,6 +234,11 @@ export class ListDocumentsComponent implements OnInit, OnDestroy {
   public readonly $permissionCreate = computed<boolean>(() => {
     const userPermissions =
       (this._globalStoreService.selector(ListDocumentsComponent.STORE_PERMISSIONS_KEY)() as TContextualPermission[]) ?? [];
+
+    if (!userPermissions.length) {
+      return true;
+    }
+
     return PermissionsEngine.evaluate(PERMISSION_DOCUMENTS_CREATE, userPermissions);
   });
 
@@ -210,25 +274,25 @@ export class ListDocumentsComponent implements OnInit, OnDestroy {
   }
 
   public onTableOptionSelect(event: ITableDocuments): void {
-    const rawOption = event.option?.optionSeleted ?? '';
+    const rawOption = event?.option?.optionSeleted ?? '';
     const selectedOption = rawOption.toUpperCase();
-    const row = event.row;
+    const row = event?.row;
 
     if (!row || !selectedOption) {
       return;
     }
 
-    if (selectedOption === EEventSelectItem.OPT2) {
+    if (selectedOption === EEventSelectItem.OPT2 || selectedOption === 'OPT2') {
       this.promptDeleteModal(row);
       return;
     }
 
-    if (selectedOption === EEventSelectItem.OPT1) {
+    if (selectedOption === EEventSelectItem.OPT1 || selectedOption === 'OPT1') {
       this.navigateWithMode(row, EResourceViewMode.VIEW);
       return;
     }
 
-    if (selectedOption === EEventSelectItem.OPT3) {
+    if (selectedOption === EEventSelectItem.OPT3 || selectedOption === 'OPT3') {
       this.navigateWithMode(row, EResourceViewMode.EDIT);
       return;
     }
@@ -299,179 +363,53 @@ export class ListDocumentsComponent implements OnInit, OnDestroy {
 }
 
 
------------------
+----------------
 
+<section class="bc-container bc-mt-5">
+  <app-page-header
+    [$title]="'Recursos de Documentación'"
+    [$subtitle]="'Configuración de repositorios fuente'"
+    [$backRoute]="'/dashboard'"
+    [$actionLabel]="'Agregar nuevo recurso'"
+    [$permissionButton]="$permissionCreate()"
+    (actionClick)="goToCreateNewDocument()"
+  />
 
+  @if (resourceDocuments.isLoading()) {
+    <app-skeleton-grid [$count]="'1'" [$type]="'square'" [$width]="'1200'" [$height]="'800'" />
+  } @else if (resourceDocuments.error()) {
+    <app-error-state [$message]="'No se obtuvieron los recursos de documentación'" (retry)="resourceDocuments.reload()" />
+  } @else if (resourceDocuments.value().length > 0) {
+    <app-list-all-documents
+      [$data]="$documentsViewModels()"
+      [$cellOptions]="$cellOptions()"
+      ($optionSelect)="onTableOptionSelect($event)"
+    />
+  } @else {
+    <div class="bc-row bc-justify-content-center bc-align-items-center bc-flex-column bc-gap-4 bc-py-5">
+      <em class="bc-icon">empty</em>
+      <h2>No hay recursos registrados</h2>
+      <p>No se encontraron repositorios de documentación configurados.</p>
 
-import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-
-import {
-  EResourceViewMode,
-  IApiHttpError,
-  ICreateResourcePayload,
-  IDocumentationResource,
-  IResourceForm,
-  IUpdateResourcePayload,
-} from '@core/models/documents.model';
-import { DocumentationService } from '@core/services/documentation/services/documentation.service';
-import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
-import { ButtonComponent } from 'web-components-lib';
-
-@Component({
-  selector: 'app-create-document',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageHeaderComponent, ButtonComponent],
-  templateUrl: './create-document.component.html',
-  styleUrl: './create-document.component.scss',
-})
-export class CreateDocumentComponent implements OnInit {
-  private static readonly URL_REGEX_PATTERN = 'https?://.+';
-  private static readonly ROUTE_LIST = '/admin/list-documents';
-
-  private static readonly PARAM_ORG = 'org';
-  private static readonly PARAM_REPO = 'repo';
-  private static readonly PARAM_MODE = 'mode';
-
-  private static readonly MSG_LOAD_ERROR = 'No se pudo cargar la información del recurso.';
-  private static readonly MSG_UPDATE_ERROR = 'Error al actualizar el recurso de documentación.';
-  private static readonly MSG_CREATE_ERROR = 'Error al crear el recurso de documentación.';
-
-  private readonly _fb = inject(FormBuilder);
-  private readonly _router = inject(Router);
-  private readonly _route = inject(ActivatedRoute);
-  private readonly _docService = inject(DocumentationService);
-
-  public readonly $isEditMode = signal<boolean>(false);
-  public readonly $isViewMode = signal<boolean>(false);
-  public readonly $isSubmitting = signal<boolean>(false);
-  public readonly $errorMessage = signal<string | null>(null);
-
-  private _currentOrg = '';
-  private _currentRepo = '';
-
-  public resourceForm: FormGroup<IResourceForm> = this._fb.group({
-    organization: this._fb.nonNullable.control('', [Validators.required]),
-    repositoryName: this._fb.nonNullable.control('', [Validators.required]),
-    name: this._fb.nonNullable.control(''),
-    description: this._fb.nonNullable.control(''),
-    url: this._fb.nonNullable.control('', [Validators.pattern(CreateDocumentComponent.URL_REGEX_PATTERN)]),
-  });
-
-  ngOnInit(): void {
-    const org = this._route.snapshot.queryParamMap.get(CreateDocumentComponent.PARAM_ORG);
-    const repo = this._route.snapshot.queryParamMap.get(CreateDocumentComponent.PARAM_REPO);
-    const mode = this._route.snapshot.queryParamMap.get(CreateDocumentComponent.PARAM_MODE);
-
-    if (!org || !repo) {
-      return;
-    }
-
-    this._currentOrg = org;
-    this._currentRepo = repo;
-
-    this.applyModeRestrictions(mode);
-    this.loadResourceData(org, repo);
+      <nv-button
+        typeButton="primary"
+        sizeButton="small"
+        width="hug"
+        routerLink="/admin/create-document"
+      >
+        Crear tu primer recurso
+      </nv-button>
+    </div>
   }
+</section>
 
-  private applyModeRestrictions(mode: string | null): void {
-    if (mode === EResourceViewMode.VIEW) {
-      this.$isViewMode.set(true);
-      this.resourceForm.disable();
-      return;
-    }
-
-    this.$isEditMode.set(true);
-    this.resourceForm.controls.organization.disable();
-    this.resourceForm.controls.repositoryName.disable();
-  }
-
-  private loadResourceData(org: string, repo: string): void {
-    this._docService.getResourceById(org, repo).subscribe({
-      next: (resource: IDocumentationResource) => {
-        this.resourceForm.patchValue({
-          organization: resource.organization,
-          repositoryName: resource.repositoryName,
-          name: resource.name ?? '',
-          description: resource.description ?? '',
-          url: resource.url ?? '',
-        });
-      },
-      error: () => {
-        this.$errorMessage.set(CreateDocumentComponent.MSG_LOAD_ERROR);
-      },
-    });
-  }
-
-  public onSubmit(): void {
-    if (this.$isViewMode() || this.resourceForm.invalid) {
-      this.resourceForm.markAllAsTouched();
-      return;
-    }
-
-    this.$isSubmitting.set(true);
-    this.$errorMessage.set(null);
-
-    if (this.$isEditMode()) {
-      this.submitUpdate();
-      return;
-    }
-
-    this.submitCreate();
-  }
-
-  private submitUpdate(): void {
-    const updatePayload: IUpdateResourcePayload = {
-      name: this.resourceForm.controls.name.value.trim() || undefined,
-      description: this.resourceForm.controls.description.value.trim() || undefined,
-      url: this.resourceForm.controls.url.value.trim() || undefined,
-    };
-
-    this._docService
-      .updateResource(this._currentOrg, this._currentRepo, updatePayload)
-      .subscribe({
-        next: () => this.handleSuccess(),
-        error: (err: IApiHttpError) => {
-          this.$isSubmitting.set(false);
-          this.$errorMessage.set(
-            err?.error?.message ?? CreateDocumentComponent.MSG_UPDATE_ERROR
-          );
-        },
-      });
-  }
-
-  private submitCreate(): void {
-    const raw = this.resourceForm.getRawValue();
-    const createPayload: ICreateResourcePayload = {
-      organization: raw.organization.trim(),
-      repositoryName: raw.repositoryName.trim(),
-      name: raw.name.trim() || undefined,
-      description: raw.description.trim() || undefined,
-      url: raw.url.trim() || undefined,
-    };
-
-    this._docService.createResource(createPayload).subscribe({
-      next: () => this.handleSuccess(),
-      error: (err: IApiHttpError) => {
-        this.$isSubmitting.set(false);
-        this.$errorMessage.set(
-          err?.error?.message ?? CreateDocumentComponent.MSG_CREATE_ERROR
-        );
-      },
-    });
-  }
-
-  private handleSuccess(): void {
-    this.$isSubmitting.set(false);
-    this._router.navigate([CreateDocumentComponent.ROUTE_LIST]);
-  }
-
-  public onCancel(): void {
-    this._router.navigate([CreateDocumentComponent.ROUTE_LIST]);
-  }
-}
-
-
-
+<nv-modal
+  #modal
+  [backdropClose]="'true'"
+  [modalConfig]="$modalInformation()"
+  (buttonSelect)="handleModalAction($event)"
+>
+  <div modalContent>
+    <p>{{ $modalInformation().paragraph }}</p>
+  </div>
+</nv-modal>
