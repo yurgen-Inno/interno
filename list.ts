@@ -1,11 +1,19 @@
+import { signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { IDocumentationResource, IRowDocument } from '@core/models/documents.model';
+import { MODAL_CONFIRM_DELETE_DOCUMENT } from '@core/constants/table-documents.contant';
+import {
+  EResourceViewMode,
+  IDocumentationResource,
+  IRowDocument,
+  ITableDocuments,
+} from '@core/models/documents.model';
 import { EEventSelectItem } from '@core/models/table-dashboard.model';
 import { DocumentationService } from '@core/services/documentation/services/documentation.service';
 import { EventsService } from '@core/services/events/events.service';
 import { createRoutingFactory, Spectator } from '@ngneat/spectator/jest';
-import { of, throwError } from 'rxjs';
-import { TransactionStatus } from 'web-components-lib';
+import { GlobalStoreService } from '@shared/store/global-store.service';
+import { of } from 'rxjs';
+import { ModalComponent } from 'web-components-lib';
 import { ListDocumentsComponent } from './list-documents.component';
 
 describe('ListDocumentsComponent', () => {
@@ -43,11 +51,17 @@ describe('ListDocumentsComponent', () => {
     sendEvent: jest.fn().mockReturnValue(of(null)),
   };
 
+  const mockGlobalStoreService = {
+    selector: jest.fn().mockReturnValue(signal([])),
+  };
+
   const createComponent = createRoutingFactory({
     component: ListDocumentsComponent,
+    shallow: true,
     providers: [
       { provide: DocumentationService, useValue: mockDocumentationService },
       { provide: EventsService, useValue: mockEventsService },
+      { provide: GlobalStoreService, useValue: mockGlobalStoreService },
     ],
   });
 
@@ -66,14 +80,11 @@ describe('ListDocumentsComponent', () => {
 
     it('should have default modal information configured', () => {
       const modalInfo = spectator.component.$modalInformation();
-      expect(modalInfo.size).toBe('sm');
-      expect(modalInfo.title).toBe('Confirmar eliminación');
-      expect(modalInfo.buttons?.enabled).toBe(true);
-      expect(modalInfo.status?.type).toBe(TransactionStatus.info);
+      expect(modalInfo).toEqual(MODAL_CONFIRM_DELETE_DOCUMENT);
     });
 
-    it('should initialize documentToDelete as null', () => {
-      expect(spectator.component.documentToDelete).toBeNull();
+    it('should initialize $documentToDelete as null', () => {
+      expect(spectator.component.$documentToDelete()).toBeNull();
     });
   });
 
@@ -108,17 +119,22 @@ describe('ListDocumentsComponent', () => {
     });
 
     it('should show modal for delete action (OPT2)', () => {
-      const mockModal = { showModal: jest.fn() };
+      const mockModal = { showModal: jest.fn() } as unknown as ModalComponent;
       Object.defineProperty(spectator.component, 'modal', {
         value: () => mockModal,
       });
 
-      spectator.component.onTableOptionSelect({
-        optionSelected: 'OPT2',
-        rowData: mockRow,
-      });
+      const eventPayload: ITableDocuments = {
+        option: {
+          optionSeleted: EEventSelectItem.OPT2,
+          rowData: mockRow,
+        },
+        row: mockRow,
+      };
 
-      expect(spectator.component.documentToDelete).toEqual({
+      spectator.component.onTableOptionSelect(eventPayload);
+
+      expect(spectator.component.$documentToDelete()).toEqual({
         organization: mockRow.organization,
         repositoryName: mockRow.repositoryName,
         name: mockRow.name,
@@ -130,46 +146,41 @@ describe('ListDocumentsComponent', () => {
     });
 
     it('should navigate to view mode for view action (OPT1)', () => {
-      spectator.component.onTableOptionSelect({
-        optionSelected: 'OPT1',
-        rowData: mockRow,
-      });
+      const eventPayload: ITableDocuments = {
+        option: {
+          optionSeleted: EEventSelectItem.OPT1,
+          rowData: mockRow,
+        },
+        row: mockRow,
+      };
+
+      spectator.component.onTableOptionSelect(eventPayload);
 
       expect(router.navigate).toHaveBeenCalledWith(['/admin/create-document'], {
         queryParams: {
           org: mockRow.organization,
           repo: mockRow.repositoryName,
-          mode: 'view',
+          mode: EResourceViewMode.VIEW,
         },
       });
     });
 
     it('should navigate to edit mode for edit action (OPT3)', () => {
-      spectator.component.onTableOptionSelect({
-        optionSelected: 'OPT3',
-        rowData: mockRow,
-      });
-
-      expect(router.navigate).toHaveBeenCalledWith(['/admin/create-document'], {
-        queryParams: {
-          org: mockRow.organization,
-          repo: mockRow.repositoryName,
-          mode: 'edit',
+      const eventPayload: ITableDocuments = {
+        option: {
+          optionSeleted: EEventSelectItem.OPT3,
+          rowData: mockRow,
         },
-      });
-    });
+        row: mockRow,
+      };
 
-    it('should handle typo in event payload (optionSeleted: opt3)', () => {
-      spectator.component.onTableOptionSelect({
-        optionSeleted: 'opt3',
-        rowData: mockRow,
-      });
+      spectator.component.onTableOptionSelect(eventPayload);
 
       expect(router.navigate).toHaveBeenCalledWith(['/admin/create-document'], {
         queryParams: {
           org: mockRow.organization,
           repo: mockRow.repositoryName,
-          mode: 'edit',
+          mode: EResourceViewMode.EDIT,
         },
       });
     });
@@ -177,10 +188,14 @@ describe('ListDocumentsComponent', () => {
 
   describe('handleModalAction', () => {
     it('should call deleteResource when action is accept and documentToDelete exists', () => {
-      spectator.component.documentToDelete = mockResource;
+      spectator.component.$documentToDelete.set(mockResource);
       const reloadSpy = jest.spyOn(spectator.component.resourceDocuments, 'reload');
 
-      const mockModal = { showModal: jest.fn(), handleClose: jest.fn() };
+      const mockModal = {
+        showModal: jest.fn(),
+        handleClose: jest.fn(),
+      } as unknown as ModalComponent;
+
       Object.defineProperty(spectator.component, 'modal', {
         value: () => mockModal,
       });
@@ -192,11 +207,16 @@ describe('ListDocumentsComponent', () => {
         mockResource.repositoryName
       );
       expect(reloadSpy).toHaveBeenCalled();
+      expect(mockModal.handleClose).toHaveBeenCalledWith('button-accept');
     });
 
     it('should not call deleteResource when action is cancel', () => {
-      spectator.component.documentToDelete = mockResource;
-      const mockModal = { showModal: jest.fn(), handleClose: jest.fn() };
+      spectator.component.$documentToDelete.set(mockResource);
+      const mockModal = {
+        showModal: jest.fn(),
+        handleClose: jest.fn(),
+      } as unknown as ModalComponent;
+
       Object.defineProperty(spectator.component, 'modal', {
         value: () => mockModal,
       });

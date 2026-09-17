@@ -1,4 +1,5 @@
 import { ActivatedRoute, Router } from '@angular/router';
+import { EResourceViewMode } from '@core/models/documents.model';
 import { IDocumentationResource } from '@core/models/documents.model';
 import { DocumentationService } from '@core/services/documentation/services/documentation.service';
 import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
@@ -69,10 +70,10 @@ describe('CreateDocumentComponent', () => {
     });
 
     it('should initialize in create mode with enabled fields', () => {
-      expect(spectator.component.isEditMode()).toBe(false);
-      expect(spectator.component.isViewMode()).toBe(false);
-      expect(spectator.component.resourceForm.get('organization')?.enabled).toBe(true);
-      expect(spectator.component.resourceForm.get('repositoryName')?.enabled).toBe(true);
+      expect(spectator.component.$isEditMode()).toBe(false);
+      expect(spectator.component.$isViewMode()).toBe(false);
+      expect(spectator.component.resourceForm.controls.organization.enabled).toBe(true);
+      expect(spectator.component.resourceForm.controls.repositoryName.enabled).toBe(true);
     });
 
     it('should not submit if form is invalid', () => {
@@ -103,7 +104,7 @@ describe('CreateDocumentComponent', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin/list-documents']);
     });
 
-    it('should set errorMessage when createResource fails', () => {
+    it('should set $errorMessage when createResource fails', () => {
       mockDocService.createResource.mockReturnValue(
         throwError(() => ({ error: { message: 'El recurso ya existe' } }))
       );
@@ -118,8 +119,8 @@ describe('CreateDocumentComponent', () => {
 
       spectator.component.onSubmit();
 
-      expect(spectator.component.errorMessage()).toBe('El recurso ya existe');
-      expect(spectator.component.isSubmitting()).toBe(false);
+      expect(spectator.component.$errorMessage()).toBe('El recurso ya existe');
+      expect(spectator.component.$isSubmitting()).toBe(false);
     });
   });
 
@@ -128,15 +129,15 @@ describe('CreateDocumentComponent', () => {
       setupComponent({
         org: 'grupobancolombia-innersource',
         repo: 'NU5740001_Metrics_Doc',
-        mode: 'edit',
+        mode: EResourceViewMode.EDIT,
       });
     });
 
     it('should initialize in edit mode and disable identity fields', () => {
-      expect(spectator.component.isEditMode()).toBe(true);
-      expect(spectator.component.isViewMode()).toBe(false);
-      expect(spectator.component.resourceForm.get('organization')?.disabled).toBe(true);
-      expect(spectator.component.resourceForm.get('repositoryName')?.disabled).toBe(true);
+      expect(spectator.component.$isEditMode()).toBe(true);
+      expect(spectator.component.$isViewMode()).toBe(false);
+      expect(spectator.component.resourceForm.controls.organization.disabled).toBe(true);
+      expect(spectator.component.resourceForm.controls.repositoryName.disabled).toBe(true);
       expect(mockDocService.getResourceById).toHaveBeenCalledWith(
         'grupobancolombia-innersource',
         'NU5740001_Metrics_Doc'
@@ -170,12 +171,12 @@ describe('CreateDocumentComponent', () => {
       setupComponent({
         org: 'grupobancolombia-innersource',
         repo: 'NU5740001_Metrics_Doc',
-        mode: 'view',
+        mode: EResourceViewMode.VIEW,
       });
     });
 
     it('should disable entire form when in view mode', () => {
-      expect(spectator.component.isViewMode()).toBe(true);
+      expect(spectator.component.$isViewMode()).toBe(true);
       expect(spectator.component.resourceForm.disabled).toBe(true);
     });
 
@@ -196,3 +197,6 @@ describe('CreateDocumentComponent', () => {
     });
   });
 });
+
+
+
