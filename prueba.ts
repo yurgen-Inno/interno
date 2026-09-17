@@ -1,3 +1,77 @@
+import { Component, computed, input, output, signal } from '@angular/core';
+import { BcTableOptionMenu } from '@bancolombia/design-system-behaviors';
+import { BcPaginatorV2Module } from '@bancolombia/design-system-web/bc-paginator-v2';
+import { BcTableModule } from '@bancolombia/design-system-web/bc-table';
+import { BcTooltipModule } from '@bancolombia/design-system-web/bc-tooltip';
+import {
+  IDropdownOptionEvent,
+  IEventSelectDocument,
+  IRowDocument,
+  ITableDocuments,
+} from '@core/models/documents.model';
+
+@Component({
+  selector: 'app-list-all-documents',
+  standalone: true,
+  imports: [BcTableModule, BcTooltipModule, BcPaginatorV2Module],
+  templateUrl: './list-all-documents.component.html',
+  styleUrl: './list-all-documents.component.scss',
+})
+export class ListAllDocumentsComponent {
+  readonly $data = input.required<IRowDocument[]>();
+  readonly $cellOptions = input.required<BcTableOptionMenu[]>();
+
+  readonly $optionSelect = output<ITableDocuments>();
+
+  // Control de paginación
+  public readonly $currentPage = signal<number>(1);
+  public readonly $pageSize = signal<number>(10);
+
+  public readonly $paginatedData = computed<IRowDocument[]>(() => {
+    const data = this.$data();
+    const startIndex = (this.$currentPage() - 1) * this.$pageSize();
+    return data.slice(startIndex, startIndex + this.$pageSize());
+  });
+
+  public onPageChange(event: { page?: number; pageIndex?: number; size?: number; pageSize?: number } | number): void {
+    if (typeof event === 'number') {
+      this.$currentPage.set(event);
+      return;
+    }
+
+    const newPage = (event.pageIndex !== undefined ? event.pageIndex + 1 : event.page) ?? 1;
+    this.$currentPage.set(newPage);
+
+    const newSize = event.pageSize ?? event.size;
+    if (newSize) {
+      this.$pageSize.set(newSize);
+    }
+  }
+
+  public onOptionSelected(
+    event: IDropdownOptionEvent | string,
+    row: IRowDocument
+  ): void {
+    const rawOption = typeof event === 'string'
+      ? event
+      : event?.optionSeleted ?? event?.optionSelected ?? event?.id ?? event?.value ?? '';
+
+    const optionPayload: IEventSelectDocument = {
+      optionSeleted: rawOption.toUpperCase(),
+      rowData: row,
+    };
+
+    this.$optionSelect.emit({
+      option: optionPayload,
+      row,
+    });
+  }
+}
+
+
+---------
+
+
 <div class="bc-row">
   @defer (on viewport; prefetch on idle) {
     <bc-table-container
@@ -37,7 +111,7 @@
           </thead>
 
           <tbody>
-            @for (row of $data(); track row.organization + '/' + row.repositoryName) {
+            @for (row of $paginatedData(); track row.organization + '/' + row.repositoryName) {
               <tr>
                 <td bc-cell>
                   <strong>{{ row.repositoryName }}</strong>
@@ -75,6 +149,15 @@
           </tbody>
         </table>
       </bc-table-content>
+
+      @if ($data().length > $pageSize()) {
+        <bc-paginator-v2
+          [totalItems]="$data().length"
+          [pageSize]="$pageSize()"
+          [page]="$currentPage()"
+          (pageChange)="onPageChange($event)"
+        ></bc-paginator-v2>
+      }
     </bc-table-container>
   } @placeholder {
     <div class="bc-col-12 bc-p-4">
@@ -86,56 +169,3 @@
     </div>
   }
 </div>
-
-
------------
-
-
-<section class="bc-container bc-mt-5">
-  <app-page-header
-    [$title]="'Recursos de Documentación'"
-    [$subtitle]="'Configuración de repositorios fuente'"
-    [$backRoute]="'/dashboard'"
-    [$actionLabel]="'Agregar nuevo recurso'"
-    [$permissionButton]="$permissionCreate()"
-    (actionClick)="goToCreateNewDocument()"
-  />
-
-  @if (resourceDocuments.isLoading()) {
-    <app-skeleton-grid [$count]="1" [$type]="'square'" [$width]="'1200'" [$height]="'800'" />
-  } @else if (resourceDocuments.error()) {
-    <app-error-state [$message]="'No se obtuvieron los recursos de documentación'" (retry)="resourceDocuments.reload()" />
-  } @else if (resourceDocuments.value().length > 0) {
-    <app-list-all-documents
-      [$data]="$documentsViewModels()"
-      [$cellOptions]="$cellOptions()"
-      ($optionSelect)="onTableOptionSelect($event)"
-    />
-  } @else {
-    <div class="bc-row bc-justify-content-center bc-align-items-center bc-flex-column bc-gap-4 bc-py-5">
-      <em class="bc-icon">empty</em>
-      <h2>No hay recursos registrados</h2>
-      <p>No se encontraron repositorios de documentación configurados.</p>
-
-      <nv-button
-        typeButton="primary"
-        sizeButton="small"
-        width="hug"
-        routerLink="/admin/create-document"
-      >
-        Crear tu primer recurso
-      </nv-button>
-    </div>
-  }
-</section>
-
-<nv-modal
-  #modal
-  [backdropClose]="true"
-  [modalConfig]="$modalInformation()"
-  (buttonSelect)="handleModalAction($event)"
->
-  <div modalContent>
-    <p>{{ $modalInformation().paragraph }}</p>
-  </div>
-</nv-modal>
