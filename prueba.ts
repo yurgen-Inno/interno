@@ -1,11 +1,21 @@
-import { Component, input, output } from '@angular/core';
+export interface IPaginatorDetailEvent {
+  detail?: {
+    page?: number;
+    itemsPerPage?: number;
+  };
+}
+
+
+
+import { Component, computed, input, output, signal } from '@angular/core';
 import { BcTableOptionMenu } from '@bancolombia/design-system-behaviors';
-import { BcPaginatorModule } from '@bancolombia/design-system-web/bc-paginator';
+import { BcPaginatorV2Module } from '@bancolombia/design-system-web/bc-paginator-v2';
 import { BcTableModule } from '@bancolombia/design-system-web/bc-table';
 import { BcTooltipModule } from '@bancolombia/design-system-web/bc-tooltip';
 import {
   IDropdownOptionEvent,
   IEventSelectDocument,
+  IPaginatorDetailEvent,
   IRowDocument,
   ITableDocuments,
 } from '@core/models/documents.model';
@@ -13,7 +23,7 @@ import {
 @Component({
   selector: 'app-list-all-documents',
   standalone: true,
-  imports: [BcTableModule, BcTooltipModule, BcPaginatorModule],
+  imports: [BcTableModule, BcTooltipModule, BcPaginatorV2Module],
   templateUrl: './list-all-documents.component.html',
   styleUrl: './list-all-documents.component.scss',
 })
@@ -22,6 +32,26 @@ export class ListAllDocumentsComponent {
   readonly $cellOptions = input.required<BcTableOptionMenu[]>();
 
   readonly $optionSelect = output<ITableDocuments>();
+
+  public readonly $currentPage = signal<number>(1);
+  public readonly $itemsPerPage = signal<number>(10);
+
+  public readonly $paginatedData = computed<IRowDocument[]>(() => {
+    const data = this.$data();
+    const startIndex = (this.$currentPage() - 1) * this.$itemsPerPage();
+    return data.slice(startIndex, startIndex + this.$itemsPerPage());
+  });
+
+  public onPageChange(event: Event): void {
+    const customEvent = event as unknown as IPaginatorDetailEvent;
+    const pageSelected = customEvent?.detail?.page;
+
+    if (!pageSelected) {
+      return;
+    }
+
+    this.$currentPage.set(pageSelected);
+  }
 
   public onOptionSelected(
     event: IDropdownOptionEvent | string,
@@ -43,6 +73,7 @@ export class ListAllDocumentsComponent {
     });
   }
 }
+
 
 
 
@@ -85,7 +116,7 @@ export class ListAllDocumentsComponent {
           </thead>
 
           <tbody>
-            @for (row of $data(); track row.organization + '/' + row.repositoryName) {
+            @for (row of $paginatedData(); track row.organization + '/' + row.repositoryName) {
               <tr>
                 <td bc-cell>
                   <strong>{{ row.repositoryName }}</strong>
@@ -124,8 +155,13 @@ export class ListAllDocumentsComponent {
         </table>
       </bc-table-content>
 
-      <bc-paginator></bc-paginator>
-
+      @if ($data().length > $itemsPerPage()) {
+        <bc-paginator-v2
+          [totalItems]="$data().length"
+          [itemsPerPage]="$itemsPerPage()"
+          (changePage)="onPageChange($event)"
+        ></bc-paginator-v2>
+      }
     </bc-table-container>
   } @placeholder {
     <div class="bc-col-12 bc-p-4">
