@@ -560,4 +560,240 @@ export class CreateDocumentComponent implements OnInit {
 
 
 
+import {
+  Component,
+  computed,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { Router } from '@angular/router';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { Subject, takeUntil } from 'rxjs';
 
+import {
+  BcTableOptionMenu,
+} from '@bancolombia/design-system-behaviors';
+import {
+  PERMISSION_DOCUMENTS_CREATE,
+} from '@core/constants/permission-list.constant';
+import {
+  TABLE_DOCUMENT_OPTIONS,
+  TABLE_OPTIONS_DOCUMENTS,
+} from '@core/constants/table-documents.contant';
+import {
+  IDocumentationResource,
+  IEventSelectDocument,
+  IRowDocument,
+  ITableDocuments,
+} from '@core/models/documents.model';
+import { EEventSelectItem } from '@core/models/table-dashboard.model';
+import { DocumentationService } from '@core/services/documentation/services/documentation.service';
+import { EventsService } from '@core/services/events/events.service';
+import { GlobalStoreService } from '@shared/store/global-store.service';
+import { PermissionsEngine } from '@shared/utils/permissions-engine/permissions-engine';
+import {
+  ButtonComponent,
+  ModalComponent,
+  ModalConfig,
+  TransactionStatus,
+} from 'web-components-lib';
+
+import { ErrorStateComponent } from '@shared/components/error-state/error-state.component';
+import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
+import { SkeletonGridComponent } from '@shared/components/skeleton-grid/skeleton-grid.component';
+import { ListAllDocumentsComponent } from '@features/admin/components/list-all-documents/list-all-documents.component';
+
+const ROUTE_CREATE = '/admin/create-document';
+const ROUTE_DASHBOARD = '/dashboard';
+const QUERY_PARAM_ORG = 'org';
+const QUERY_PARAM_REPO = 'repo';
+const QUERY_PARAM_MODE = 'mode';
+const MODE_VIEW = 'view';
+const MODE_EDIT = 'edit';
+
+const ACTION_OPT1 = 'OPT1';
+const ACTION_OPT2 = 'OPT2';
+const ACTION_OPT3 = 'OPT3';
+const BUTTON_ACCEPT = 'accept';
+
+@Component({
+  selector: 'app-list-documents',
+  standalone: true,
+  imports: [
+    PageHeaderComponent,
+    ListAllDocumentsComponent,
+    ButtonComponent,
+    ModalComponent,
+    SkeletonGridComponent,
+    ErrorStateComponent,
+  ],
+  templateUrl: './list-documents.component.html',
+  styleUrl: './list-documents.component.scss',
+})
+export class ListDocumentsComponent implements OnInit, OnDestroy {
+  private readonly _router = inject(Router);
+  private readonly _eventsService = inject(EventsService);
+  private readonly _docService = inject(DocumentationService);
+  private readonly _globalStoreService = inject(GlobalStoreService);
+  private readonly _destroy$ = new Subject<void>();
+
+  public readonly modal = viewChild<ModalComponent>('modal');
+  public readonly $documentToDelete = signal<IDocumentationResource | null>(null);
+
+  public readonly cellOption: BcTableOptionMenu[] = TABLE_DOCUMENT_OPTIONS;
+
+  public readonly $modalInformation = signal<Partial<ModalConfig>>({
+    size: 'sm',
+    title: 'Confirmar eliminación',
+    isDynamicContentEnable: false,
+    paragraph: '¿Estás seguro de que deseas eliminar este recurso? Esta acción no se puede deshacer.',
+    buttons: {
+      enabled: true,
+      orientation: 'horizontal',
+      buttonsList: [
+        { id: 'cancel', label: 'Cancelar', type: 'secondary' },
+        { id: BUTTON_ACCEPT, label: 'Aceptar', type: 'primary' },
+      ],
+    },
+    status: {
+      enabled: true,
+      type: TransactionStatus.info,
+    },
+  });
+
+  public readonly resourceDocuments = rxResource({
+    stream: () => this._docService.getResources(),
+    defaultValue: [] as IDocumentationResource[],
+  });
+
+  public readonly $permissionCreate = computed<boolean>(() => {
+    const userPermissions = (this._globalStoreService.selector('PERMISSIONS')() as string[]) ?? [];
+    return PermissionsEngine.evaluate(PERMISSION_DOCUMENTS_CREATE, userPermissions);
+  });
+
+  public readonly $documentsViewModels = computed<IRowDocument[]>(() => {
+    return this.resourceDocuments.value().map((data: IDocumentationResource) => {
+      const formattedDate = data.lastSyncedAt
+        ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.lastSyncedAt))
+        : 'Sin sincronizar';
+
+      return {
+        id: `${data.organization}/${data.repositoryName}`,
+        title: data.name ?? data.repositoryName,
+        region: data.organization,
+        created: data.lastSyncedAt ? new Date(data.lastSyncedAt) : new Date(),
+        modified: data.lastSyncedAt ? new Date(data.lastSyncedAt) : new Date(),
+        organization: data.organization,
+        repositoryName: data.repositoryName,
+        name: data.name,
+        description: data.description,
+        url: data.url,
+        lastSyncedAt: data.lastSyncedAt,
+        lastSyncedAtFormatted: formattedDate,
+        menu: TABLE_OPTIONS_DOCUMENTS,
+      };
+    });
+  });
+
+  ngOnInit(): void {
+    this._eventsService
+      .sendEvent('documents_management_view', { start_session: new Date().toISOString() })
+      ?.pipe(takeUntil(this._destroy$))
+      .subscribe();
+  }
+
+  public onTableOptionSelect(event: ITableDocuments | { optionSelected?: string; rowData?: IRowDocument }): void {
+    const rawOption = (event as ITableDocuments).option?.optionSeleted
+      ?? (event as { optionSelected?: string }).optionSelected
+      ?? '';
+    const selectedOption = rawOption.toUpperCase();
+
+    const row = (event as ITableDocuments).row
+      ?? (event as { rowData?: IRowDocument }).rowData;
+
+    if (!row || !selectedOption) {
+      return;
+    }
+
+    if (selectedOption === ACTION_OPT2 || selectedOption === EEventSelectItem.OPT2) {
+      this.promptDeleteModal(row);
+      return;
+    }
+
+    if (selectedOption === ACTION_OPT1 || selectedOption === EEventSelectItem.OPT1) {
+      this.navigateWithMode(row, MODE_VIEW);
+      return;
+    }
+
+    if (selectedOption === ACTION_OPT3 || selectedOption === EEventSelectItem.OPT3) {
+      this.navigateWithMode(row, MODE_EDIT);
+      return;
+    }
+  }
+
+  private promptDeleteModal(row: IRowDocument): void {
+    const resource: IDocumentationResource = {
+      organization: row.organization ?? '',
+      repositoryName: row.repositoryName ?? '',
+      name: row.name,
+      description: row.description,
+      url: row.url,
+      lastSyncedAt: row.lastSyncedAt ?? null,
+    };
+
+    this.$documentToDelete.set(resource);
+    this.$modalInformation.update((prev) => ({
+      ...prev,
+      paragraph: `¿Estás seguro de que deseas eliminar el recurso "${resource.repositoryName}"?`,
+    }));
+    this.modal()?.showModal();
+  }
+
+  private navigateWithMode(row: IRowDocument, mode: string): void {
+    this._router.navigate([ROUTE_CREATE], {
+      queryParams: {
+        [QUERY_PARAM_ORG]: row.organization,
+        [QUERY_PARAM_REPO]: row.repositoryName,
+        [QUERY_PARAM_MODE]: mode,
+      },
+    });
+  }
+
+  public handleModalAction(buttonId: string): void {
+    if (buttonId !== BUTTON_ACCEPT) {
+      this.modal()?.handleClose('button-cancel');
+      return;
+    }
+
+    const currentDoc = this.$documentToDelete();
+    if (!currentDoc) {
+      return;
+    }
+
+    this._docService
+      .deleteResource(currentDoc.organization, currentDoc.repositoryName)
+      .pipe(takeUntil(this._destroy$))
+      .subscribe({
+        next: () => {
+          this.resourceDocuments.reload();
+          this.modal()?.handleClose('button-accept');
+        },
+      });
+  }
+
+  public goToCreateNewDocument(): void {
+    this._router.navigate([ROUTE_CREATE]);
+  }
+
+  public goBack(): void {
+    this._router.navigate([ROUTE_DASHBOARD]);
+  }
+
+  ngOnDestroy(): void {
+    this._destroy$.next();
+    this._destroy$.complete();
+  }
+}
