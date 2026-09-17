@@ -1,4 +1,20 @@
-readonly $optionSelect = output<IEventSelectDocument>();
+export interface IEventSelectDocument {
+  optionSeleted?: string;
+  optionSelected?: string;
+  rowData: IRowDocument;
+}
+
+export interface ITableDocuments {
+  option: IEventSelectDocument;
+  row: IRowDocument;
+  optionSelected?: string;
+  rowData?: IRowDocument;
+}
+
+
+
+
+readonly $optionSelect = output<ITableDocuments>();
 
   public onOptionSelected(
     event: IDropdownOptionEvent | string,
@@ -11,36 +27,18 @@ readonly $optionSelect = output<IEventSelectDocument>();
 
     const normalizedAction = rawOption.trim().toUpperCase();
 
+    const eventPayload: IEventSelectDocument = {
+      optionSeleted: normalizedAction,
+      optionSelected: normalizedAction,
+      rowData: row,
+    };
+
     this.$optionSelect.emit({
+      option: eventPayload,
+      row,
       optionSelected: normalizedAction,
       rowData: row,
     });
-  }
-
-
-  public onTableOptionSelect(event: IEventSelectDocument): void {
-    const rawOption = event?.optionSelected ?? event?.optionSeleted ?? '';
-    const selectedOption = rawOption.trim().toUpperCase();
-    const row = event?.rowData;
-
-    if (!row || !selectedOption) {
-      return;
-    }
-
-    if (selectedOption === EEventSelectItem.OPT2 || selectedOption === 'OPT2') {
-      this.promptDeleteModal(row);
-      return;
-    }
-
-    if (selectedOption === EEventSelectItem.OPT1 || selectedOption === 'OPT1') {
-      this.navigateWithMode(row, EResourceViewMode.VIEW);
-      return;
-    }
-
-    if (selectedOption === EEventSelectItem.OPT3 || selectedOption === 'OPT3') {
-      this.navigateWithMode(row, EResourceViewMode.EDIT);
-      return;
-    }
   }
 
 
@@ -65,10 +63,12 @@ readonly $optionSelect = output<IEventSelectDocument>();
         mockRow
       );
 
-      expect(spy).toHaveBeenCalledWith({
-        optionSelected: 'OPT3',
-        rowData: mockRow,
-      });
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          optionSelected: 'OPT3',
+          rowData: mockRow,
+        })
+      );
     });
 
     it('should handle optionSelected without typo and emit standard payload', () => {
@@ -79,10 +79,12 @@ readonly $optionSelect = output<IEventSelectDocument>();
         mockRow
       );
 
-      expect(spy).toHaveBeenCalledWith({
-        optionSelected: 'OPT1',
-        rowData: mockRow,
-      });
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          optionSelected: 'OPT1',
+          rowData: mockRow,
+        })
+      );
     });
 
     it('should handle direct string option and convert to uppercase', () => {
@@ -90,13 +92,13 @@ readonly $optionSelect = output<IEventSelectDocument>();
 
       spectator.component.onOptionSelected('opt2', mockRow);
 
-      expect(spy).toHaveBeenCalledWith({
-        optionSelected: 'OPT2',
-        rowData: mockRow,
-      });
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          optionSelected: 'OPT2',
+          rowData: mockRow,
+        })
+      );
     });
   });
-
-
 
   
