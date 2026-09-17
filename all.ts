@@ -1,12 +1,10 @@
 describe('onOptionSelected', () => {
-    const fixedDate = new Date('2026-09-17T12:00:00.000Z');
-
     const mockRow: IRowDocument = {
       id: 'repo-test',
       title: 'Repo Test',
       region: 'grupobancolombia-innersource',
-      created: fixedDate,
-      modified: fixedDate,
+      created: new Date(),
+      modified: new Date(),
       organization: 'grupobancolombia-innersource',
       repositoryName: 'repo-test',
       name: 'Repo Test',
@@ -20,15 +18,10 @@ describe('onOptionSelected', () => {
         mockRow
       );
 
-      expect(spy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          optionSelected: 'OPT3',
-          rowData: expect.objectContaining({
-            organization: 'grupobancolombia-innersource',
-            repositoryName: 'repo-test',
-          }),
-        })
-      );
+      expect(spy).toHaveBeenCalledTimes(1);
+      const emittedPayload = spy.mock.calls[0][0] as Record<string, unknown>;
+      expect(emittedPayload['optionSelected']).toBe('OPT3');
+      expect(emittedPayload['rowData']).toEqual(mockRow);
     });
 
     it('should handle optionSelected without typo and emit standard payload', () => {
@@ -39,15 +32,10 @@ describe('onOptionSelected', () => {
         mockRow
       );
 
-      expect(spy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          optionSelected: 'OPT1',
-          rowData: expect.objectContaining({
-            organization: 'grupobancolombia-innersource',
-            repositoryName: 'repo-test',
-          }),
-        })
-      );
+      expect(spy).toHaveBeenCalledTimes(1);
+      const emittedPayload = spy.mock.calls[0][0] as Record<string, unknown>;
+      expect(emittedPayload['optionSelected']).toBe('OPT1');
+      expect(emittedPayload['rowData']).toEqual(mockRow);
     });
 
     it('should handle direct string option and convert to uppercase', () => {
@@ -55,14 +43,9 @@ describe('onOptionSelected', () => {
 
       spectator.component.onOptionSelected('opt2', mockRow);
 
-      expect(spy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          optionSelected: 'OPT2',
-          rowData: expect.objectContaining({
-            organization: 'grupobancolombia-innersource',
-            repositoryName: 'repo-test',
-          }),
-        })
-      );
+      expect(spy).toHaveBeenCalledTimes(1);
+      const emittedPayload = spy.mock.calls[0][0] as Record<string, unknown>;
+      expect(emittedPayload['optionSelected']).toBe('OPT2');
+      expect(emittedPayload['rowData']).toEqual(mockRow);
     });
   });
