@@ -1,39 +1,27 @@
-export interface IPaginatorDetailEvent {
-  detail?: number | {
-    page?: number;
-    pageActive?: number;
-    pageSelected?: number;
-    currentPage?: number;
-    itemsPerPage?: number;
-  };
-}
+public onPageChange(event: unknown): void {
+    console.warn('--> EVENTO PAGINADOR DETECTADO:', event);
 
-
-
-public onPageChange(event: Event | number): void {
     if (typeof event === 'number') {
       this.$currentPage.set(event);
       return;
     }
 
-    const customEvent = event as unknown as IPaginatorDetailEvent;
-    
-    // Si detail es directamente el número de página
-    if (typeof customEvent?.detail === 'number') {
-      this.$currentPage.set(customEvent.detail);
+    const customEvent = event as { detail?: unknown };
+    const detail = customEvent?.detail;
+
+    if (typeof detail === 'number') {
+      this.$currentPage.set(detail);
       return;
     }
 
-    // Si detail es un objeto con propiedades
-    if (typeof customEvent?.detail === 'object' && customEvent.detail !== null) {
-      const pageNumber =
-        customEvent.detail.page ??
-        customEvent.detail.pageActive ??
-        customEvent.detail.pageSelected ??
-        customEvent.detail.currentPage;
+    if (typeof detail === 'object' && detail !== null) {
+      const pageNum = (detail as Record<string, unknown>)['page'] 
+        ?? (detail as Record<string, unknown>)['pageActive']
+        ?? (detail as Record<string, unknown>)['currentPage']
+        ?? (detail as Record<string, unknown>)['pageSelected'];
 
-      if (pageNumber) {
-        this.$currentPage.set(pageNumber);
+      if (typeof pageNum === 'number') {
+        this.$currentPage.set(pageNum);
         return;
       }
     }
@@ -41,11 +29,13 @@ public onPageChange(event: Event | number): void {
 
 
 
-@if ($data().length > $itemsPerPage()) {
+  @if ($data().length > $itemsPerPage()) {
         <bc-paginator-v2
           [totalItems]="$data().length"
           [itemsPerPage]="$itemsPerPage()"
-          [attr.page]="$currentPage()"
           (changePage)="onPageChange($event)"
+          (changePagination)="onPageChange($event)"
+          (bcChange)="onPageChange($event)"
+          (pageChange)="onPageChange($event)"
         ></bc-paginator-v2>
       }
