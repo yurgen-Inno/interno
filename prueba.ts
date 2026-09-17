@@ -10,6 +10,12 @@ import {
   ITableDocuments,
 } from '@core/models/documents.model';
 
+export interface IBcPaginatorChangeEvent {
+  page?: number;
+  itemsPerPage?: number;
+  totalPages?: number;
+}
+
 @Component({
   selector: 'app-list-all-documents',
   standalone: true,
@@ -23,28 +29,27 @@ export class ListAllDocumentsComponent {
 
   readonly $optionSelect = output<ITableDocuments>();
 
-  // Control de paginación
   public readonly $currentPage = signal<number>(1);
-  public readonly $pageSize = signal<number>(10);
+  public readonly $itemsPerPage = signal<number>(10);
 
   public readonly $paginatedData = computed<IRowDocument[]>(() => {
     const data = this.$data();
-    const startIndex = (this.$currentPage() - 1) * this.$pageSize();
-    return data.slice(startIndex, startIndex + this.$pageSize());
+    const startIndex = (this.$currentPage() - 1) * this.$itemsPerPage();
+    return data.slice(startIndex, startIndex + this.$itemsPerPage());
   });
 
-  public onPageChange(event: { page?: number; pageIndex?: number; size?: number; pageSize?: number } | number): void {
+  public onPageChange(event: IBcPaginatorChangeEvent | number): void {
     if (typeof event === 'number') {
       this.$currentPage.set(event);
       return;
     }
 
-    const newPage = (event.pageIndex !== undefined ? event.pageIndex + 1 : event.page) ?? 1;
-    this.$currentPage.set(newPage);
+    if (event?.page) {
+      this.$currentPage.set(event.page);
+    }
 
-    const newSize = event.pageSize ?? event.size;
-    if (newSize) {
-      this.$pageSize.set(newSize);
+    if (event?.itemsPerPage) {
+      this.$itemsPerPage.set(event.itemsPerPage);
     }
   }
 
@@ -68,8 +73,6 @@ export class ListAllDocumentsComponent {
   }
 }
 
-
----------
 
 
 <div class="bc-row">
@@ -150,12 +153,12 @@ export class ListAllDocumentsComponent {
         </table>
       </bc-table-content>
 
-      @if ($data().length > $pageSize()) {
+      @if ($data().length > $itemsPerPage()) {
         <bc-paginator-v2
           [totalItems]="$data().length"
-          [pageSize]="$pageSize()"
-          [page]="$currentPage()"
-          (pageChange)="onPageChange($event)"
+          [itemsPerPage]="$itemsPerPage()"
+          [pageActive]="$currentPage()"
+          (changePage)="onPageChange($event)"
         ></bc-paginator-v2>
       }
     </bc-table-container>
