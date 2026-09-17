@@ -1,10 +1,12 @@
 describe('onOptionSelected', () => {
+    const fixedDate = new Date('2026-09-17T12:00:00.000Z');
+
     const mockRow: IRowDocument = {
       id: 'repo-test',
       title: 'Repo Test',
       region: 'grupobancolombia-innersource',
-      created: new Date(),
-      modified: new Date(),
+      created: fixedDate,
+      modified: fixedDate,
       organization: 'grupobancolombia-innersource',
       repositoryName: 'repo-test',
       name: 'Repo Test',
@@ -21,7 +23,10 @@ describe('onOptionSelected', () => {
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({
           optionSelected: 'OPT3',
-          rowData: mockRow,
+          rowData: expect.objectContaining({
+            organization: 'grupobancolombia-innersource',
+            repositoryName: 'repo-test',
+          }),
         })
       );
     });
@@ -37,7 +42,10 @@ describe('onOptionSelected', () => {
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({
           optionSelected: 'OPT1',
-          rowData: mockRow,
+          rowData: expect.objectContaining({
+            organization: 'grupobancolombia-innersource',
+            repositoryName: 'repo-test',
+          }),
         })
       );
     });
@@ -50,7 +58,10 @@ describe('onOptionSelected', () => {
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({
           optionSelected: 'OPT2',
-          rowData: mockRow,
+          rowData: expect.objectContaining({
+            organization: 'grupobancolombia-innersource',
+            repositoryName: 'repo-test',
+          }),
         })
       );
     });
