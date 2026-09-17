@@ -75,8 +75,11 @@
           </tbody>
         </table>
       </bc-table-content>
+    </bc-table-container>
 
-      @if ($data().length > $itemsPerPage()) {
+    <!-- Paginador colocado como elemento del grid por fuera del contenedor de la tabla -->
+    @if ($data().length > $itemsPerPage()) {
+      <div class="bc-col-12 bc-mt-3 d-flex justify-content-end">
         <bc-paginator-v2
           id="documentsPaginator"
           type="numeric"
@@ -85,8 +88,8 @@
           [initialPage]="$currentPage()"
           (onChangePage)="onPageChange($event)"
         ></bc-paginator-v2>
-      }
-    </bc-table-container>
+      </div>
+    }
   } @placeholder {
     <div class="bc-col-12 bc-p-4">
       <div style="height: 400px; width: 100%; background: rgba(128, 128, 128, 0.1); border-radius: 3px;"></div>
@@ -97,81 +100,3 @@
     </div>
   }
 </div>
-
-
-
-import { Component, computed, input, output, signal } from '@angular/core';
-import { BcTableOptionMenu } from '@bancolombia/design-system-behaviors';
-import { BcPaginatorV2Module } from '@bancolombia/design-system-web/bc-paginator-v2';
-import { BcTableModule } from '@bancolombia/design-system-web/bc-table';
-import { BcTooltipModule } from '@bancolombia/design-system-web/bc-tooltip';
-import {
-  IDropdownOptionEvent,
-  IEventSelectDocument,
-  IPaginatorDetailEvent,
-  IRowDocument,
-  ITableDocuments,
-} from '@core/models/documents.model';
-
-@Component({
-  selector: 'app-list-all-documents',
-  standalone: true,
-  imports: [BcTableModule, BcTooltipModule, BcPaginatorV2Module],
-  templateUrl: './list-all-documents.component.html',
-  styleUrl: './list-all-documents.component.scss',
-})
-export class ListAllDocumentsComponent {
-  readonly $data = input.required<IRowDocument[]>();
-  readonly $cellOptions = input.required<BcTableOptionMenu[]>();
-
-  readonly $optionSelect = output<ITableDocuments>();
-
-  public readonly $currentPage = signal<number>(1);
-  public readonly $itemsPerPage = signal<number>(2);
-
-  public readonly $paginatedData = computed<IRowDocument[]>(() => {
-    const data = this.$data();
-    const startIndex = (this.$currentPage() - 1) * this.$itemsPerPage();
-    return data.slice(startIndex, startIndex + this.$itemsPerPage());
-  });
-
-  public onPageChange(event: unknown): void {
-    if (typeof event === 'number') {
-      this.$currentPage.set(event);
-      return;
-    }
-
-    const payload = event as IPaginatorDetailEvent;
-    if (typeof payload?.detail === 'number') {
-      this.$currentPage.set(payload.detail);
-      return;
-    }
-
-    if (typeof payload?.detail === 'object' && payload.detail !== null) {
-      const page = payload.detail.page ?? payload.detail.pageActive;
-      if (page) {
-        this.$currentPage.set(page);
-      }
-    }
-  }
-
-  public onOptionSelected(
-    event: IDropdownOptionEvent | string,
-    row: IRowDocument
-  ): void {
-    const rawOption =
-      typeof event === 'string'
-        ? event
-        : event?.optionSeleted ?? event?.optionSelected ?? event?.id ?? event?.value ?? '';
-
-    const optionPayload: IEventSelectDocument = {
-      optionSeleted: rawOption.toUpperCase(),
-      rowData: row,
-    };
-
-    this.$optionSelect.emit({
-      option: optionPayload,
-      row,
-    });
-  }
-}
