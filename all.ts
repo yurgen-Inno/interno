@@ -1,76 +1,43 @@
-import { IRowDocument } from '@core/models/documents.model';
-import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { ListAllDocumentsComponent } from './list-all-documents.component';
+import { FormControl } from '@angular/forms';
 
-describe('ListAllDocumentsComponent', () => {
-  let spectator: Spectator<ListAllDocumentsComponent>;
+export interface IDocumentationResource {
+  organization: string;
+  repositoryName: string;
+  name: string;
+  description?: string;
+  url?: string;
+  lastSyncedAt?: string;
+}
 
-  const createComponent = createComponentFactory({
-    component: ListAllDocumentsComponent,
-    shallow: true,
-  });
+export interface IRowDocument extends IDocumentationResource {
+  id?: string;
+  title?: string;
+  region?: string;
+  created?: Date;
+  modified?: Date;
+  lastSyncedAtFormatted?: string;
+  menu?: unknown[];
+}
 
-  beforeEach(() => {
-    spectator = createComponent({
-      props: {
-        $data: [],
-        $cellOptions: {} as any,
-      },
-    });
-  });
+export interface IEventSelectDocument {
+  optionSelected: string;
+  optionSeleted?: string;
+  rowData: IRowDocument;
+}
 
-  it('should create', () => {
-    expect(spectator.component).toBeTruthy();
-  });
+export interface IPaginatorV2ChangeEvent {
+  id: string;
+  currentPage: number;
+  itemsPerPage: number;
+  nextPage: boolean;
+  previousPage: boolean;
+  noMoreRecords?: () => void;
+}
 
-  describe('onOptionSelected', () => {
-    const mockRow: IRowDocument = {
-      id: 'repo-test',
-      title: 'Repo Test',
-      region: 'grupobancolombia-innersource',
-      created: new Date(),
-      modified: new Date(),
-      organization: 'grupobancolombia-innersource',
-      repositoryName: 'repo-test',
-    };
-
-    it('should normalize optionSeleted typo and emit standard payload', () => {
-      const spy = jest.spyOn(spectator.component.$optionSelect, 'emit');
-
-      spectator.component.onOptionSelected(
-        { optionSeleted: 'opt3' },
-        mockRow
-      );
-
-      expect(spy).toHaveBeenCalledWith({
-        optionSelected: 'OPT3',
-        rowData: mockRow,
-      });
-    });
-
-    it('should handle optionSelected without typo and emit standard payload', () => {
-      const spy = jest.spyOn(spectator.component.$optionSelect, 'emit');
-
-      spectator.component.onOptionSelected(
-        { optionSelected: 'opt1' },
-        mockRow
-      );
-
-      expect(spy).toHaveBeenCalledWith({
-        optionSelected: 'OPT1',
-        rowData: mockRow,
-      });
-    });
-
-    it('should handle direct string option and convert to uppercase', () => {
-      const spy = jest.spyOn(spectator.component.$optionSelect, 'emit');
-
-      spectator.component.onOptionSelected('opt2', mockRow);
-
-      expect(spy).toHaveBeenCalledWith({
-        optionSelected: 'OPT2',
-        rowData: mockRow,
-      });
-    });
-  });
-});
+export interface IResourceForm {
+  organization: FormControl<string>;
+  repositoryName: FormControl<string>;
+  name: FormControl<string>;
+  description: FormControl<string>;
+  url: FormControl<string>;
+}
