@@ -1,8 +1,87 @@
+export enum EResourceViewMode {
+  VIEW = 'view',
+  EDIT = 'edit',
+}
+
+export enum EPaginatorType {
+  BASIC = 'basic',
+  NUMERIC = 'numeric',
+}
+
+export const PAGINATOR_CONFIG = {
+  ID: 'documentsPaginator',
+  DEFAULT_ITEMS_PER_PAGE: 10,
+  INITIAL_PAGE: 1,
+} as const;
+
+
+
+import { FormControl } from '@angular/forms';
+
+export interface IResourceForm {
+  organization: FormControl<string>;
+  repositoryName: FormControl<string>;
+  name: FormControl<string>;
+  description: FormControl<string>;
+  url: FormControl<string>;
+}
+
+export interface IApiHttpError {
+  error?: {
+    message?: string;
+  };
+}
+
+export interface IDropdownOptionEvent {
+  optionSeleted?: string;
+  optionSelected?: string;
+  id?: string;
+  value?: string;
+}
+
+export interface IRowDocument {
+  repositoryName: string;
+  name: string;
+  organization: string;
+  url?: string;
+  lastSyncedAtFormatted?: string;
+  menu?: unknown[];
+}
+
+export interface IEventSelectDocument {
+  optionSeleted: string;
+  rowData: IRowDocument;
+}
+
+export interface ITableDocuments {
+  option: IEventSelectDocument;
+  row: IRowDocument;
+}
+
+export interface IPaginatorV2ChangeEvent {
+  id: string;
+  currentPage: number;
+  itemsPerPage: number;
+  nextPage: boolean;
+  previousPage: boolean;
+  noMoreRecords?: () => void;
+}
+
+
+
+
+
+
+
 import { Component, computed, input, output, signal } from '@angular/core';
 import { BcTableOptionMenu } from '@bancolombia/design-system-behaviors';
 import { BcPaginatorV2Module } from '@bancolombia/design-system-web/bc-paginator-v2';
 import { BcTableModule } from '@bancolombia/design-system-web/bc-table';
 import { BcTooltipModule } from '@bancolombia/design-system-web/bc-tooltip';
+import {
+  EPaginatorType,
+  PAGINATOR_CONFIG,
+} from '@core/constants/documents.constant';
 import {
   IDropdownOptionEvent,
   IEventSelectDocument,
@@ -24,19 +103,22 @@ export class ListAllDocumentsComponent {
 
   readonly $optionSelect = output<ITableDocuments>();
 
-  public readonly $currentPage = signal<number>(1);
-  public readonly $itemsPerPage = signal<number>(10);
+  public readonly paginatorId = PAGINATOR_CONFIG.ID;
+  public readonly paginatorType = EPaginatorType.BASIC;
+  public readonly initialPage = PAGINATOR_CONFIG.INITIAL_PAGE;
+
+  public readonly $currentPage = signal<number>(PAGINATOR_CONFIG.INITIAL_PAGE);
+  public readonly $itemsPerPage = signal<number>(PAGINATOR_CONFIG.DEFAULT_ITEMS_PER_PAGE);
 
   public readonly $totalPages = computed<number>(() => {
-    const total = this.$data().length;
+    const totalRecords = this.$data().length;
     const perPage = this.$itemsPerPage();
-    return total > 0 ? Math.ceil(total / perPage) : 1;
+    return totalRecords > 0 ? Math.ceil(totalRecords / perPage) : PAGINATOR_CONFIG.INITIAL_PAGE;
   });
 
   public readonly $paginatedData = computed<IRowDocument[]>(() => {
-    const data = this.$data();
     const startIndex = (this.$currentPage() - 1) * this.$itemsPerPage();
-    return data.slice(startIndex, startIndex + this.$itemsPerPage());
+    return this.$data().slice(startIndex, startIndex + this.$itemsPerPage());
   });
 
   public onPageChange(event: IPaginatorV2ChangeEvent): void {
@@ -47,7 +129,6 @@ export class ListAllDocumentsComponent {
     const requestedPage = event.currentPage;
     const maxPages = this.$totalPages();
 
-    // Guard clause: evitar que avance más allá del total real de páginas
     if (requestedPage > maxPages) {
       event.noMoreRecords?.();
       return;
@@ -55,7 +136,6 @@ export class ListAllDocumentsComponent {
 
     this.$currentPage.set(requestedPage);
 
-    // Si la nueva página activa ya es la última, deshabilitamos el botón siguiente en el paginador
     if (requestedPage === maxPages) {
       event.noMoreRecords?.();
     }
