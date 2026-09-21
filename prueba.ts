@@ -1,279 +1,157 @@
-import { ActivatedRoute, Router } from '@angular/router';
-import { EResourceViewMode, IDocumentationResource } from '@core/models/documents.model';
-import { DocumentationService } from '@core/services/documentation/services/documentation.service';
-import { EventsService } from '@core/services/events/events.service';
-import { createComponentFactory, Spectator } from '@ngneat/spectator/jest';
-import { of, throwError } from 'rxjs';
-import { CreatedDocumentComponent } from './create-document.component';
+<div class="bc-container bc-p-4">
 
-describe('CreatedDocumentComponent', () => {
-  let spectator: Spectator<CreatedDocumentComponent>;
+  <!-- Tarjeta de Perfil y Puntaje Global -->
+  <bc-card elevation="1" class="bc-mb-4">
+    <div class="bc-d-flex bc-justify-content-between bc-align-items-center">
+      
+      <!-- Información del Usuario -->
+      <div class="bc-d-flex bc-align-items-center">
+        <bc-avatar 
+          size="lg" 
+          src="url-foto-usuario.jpg" 
+          alt="Foto de perfil">
+        </bc-avatar>
+        <div class="bc-ml-3">
+          <h2 class="bc-h4 bc-m-0">Luis Gómez</h2>
+          <p class="bc-text-muted bc-m-0">usuario@correo.com.co</p>
+          <p class="bc-text-caption bc-m-0">Digital - Fábrica de software</p>
+        </div>
+      </div>
 
-  const mockResource: IDocumentationResource = {
-    organization: 'grupobancolombia-innersource',
-    repositoryName: 'NU5740001_Mundo_Test',
-    name: 'Documentación Métricas Corporativas',
-    description: 'Descripción del repositorio',
-    url: 'https://github.com/repo',
-    lastSyncedAt: '2026-09-16T12:00:00Z',
-  };
+      <!-- Resumen de Puntaje -->
+      <div class="bc-d-flex bc-align-items-center">
+        <div class="bc-text-right bc-mr-4">
+          <span class="bc-text-caption bc-text-muted bc-d-block">PUNTAJE GLOBAL</span>
+          <span class="bc-display-4 bc-font-weight-bold">79.72</span>
+          <div class="bc-text-caption bc-text-muted">
+            <span>Ranking <strong>#325</strong></span> · <span class="bc-text-success">Top 12%</span>
+          </div>
+        </div>
 
-  const mockDocService = {
-    getResourceById: jest.fn().mockReturnValue(of(mockResource)),
-    createResource: jest.fn().mockReturnValue(of(mockResource)),
-    updateResource: jest.fn().mockReturnValue(of(mockResource)),
-  };
+        <bc-card variant="neutral" class="bc-p-2 bc-bg-light">
+          <div class="bc-d-flex bc-justify-content-between">
+            <span class="bc-text-caption">79.72 / 100</span>
+            <bc-badge variant="secondary" text="Semi Senior"></bc-badge>
+          </div>
+          <div class="bc-text-caption bc-text-muted bc-mt-2">Nivel 3 de 5</div>
+        </bc-card>
+      </div>
 
-  const mockRouter = {
-    navigate: jest.fn(),
-  };
+    </div>
+  </bc-card>
 
-  const mockEventsService = {
-    sendEvent: jest.fn().mockReturnValue(of({})),
-  };
+  <!-- Pestañas (Tabs) -->
+  <bc-tabs class="bc-mb-4">
+    <bc-tab label="General"></bc-tab>
+    <bc-tab label="Ranking" active></bc-tab>
+  </bc-tabs>
 
-  const createComponent = createComponentFactory({
-    component: CreatedDocumentComponent,
-    shallow: true,
-    providers: [
-      { provide: DocumentationService, useValue: mockDocService },
-      { provide: Router, useValue: mockRouter },
-      { provide: EventsService, useValue: mockEventsService },
-    ],
-    detectChanges: false,
-  });
+  <!-- Controles y Filtros -->
+  <div class="bc-d-flex bc-justify-content-between bc-align-items-center bc-mb-3">
+    <div>
+      <h3 class="bc-h5 bc-m-0">Ranking de Evaluaciones</h3>
+      <small class="bc-text-muted">Compara tu rendimiento general</small>
+    </div>
 
-  const setupComponent = (queryParams: Record<string, string | null> = {}) => {
-    spectator = createComponent({
-      providers: [
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: {
-              queryParamMap: {
-                get: (key: string) => queryParams[key] ?? null,
-              },
-            },
-          },
-        },
-      ],
-    });
-    spectator.component.ngOnInit();
-    spectator.detectChanges();
-  };
+    <div style="width: 260px;">
+      <bc-select 
+        label="Filtrar por" 
+        value="all" 
+        placeholder="Todos los niveles">
+        <bc-option value="all">Todos los niveles</bc-option>
+        <bc-option value="senior">Senior</bc-option>
+        <bc-option value="semi-senior">Semi Senior</bc-option>
+        <bc-option value="junior">Junior</bc-option>
+      </bc-select>
+    </div>
+  </div>
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockDocService.getResourceById.mockReturnValue(of(mockResource));
-    mockDocService.createResource.mockReturnValue(of(mockResource));
-    mockDocService.updateResource.mockReturnValue(of(mockResource));
-    mockEventsService.sendEvent.mockReturnValue(of({}));
-  });
+  <!-- Tabla de Posiciones -->
+  <bc-card elevation="1" class="bc-p-0 bc-overflow-hidden">
+    <table class="bc-table bc-table-hover bc-table-striped-custom">
+      <thead>
+        <tr>
+          <th>Posición</th>
+          <th>Nombre</th>
+          <th>Rol</th>
+          <th>Nivel</th>
+          <th>Puntaje</th>
+          <th class="bc-text-right">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Filas del Top -->
+        <tr>
+          <td>#1</td>
+          <td>Carolina Méndez</td>
+          <td>Tech Lead</td>
+          <td><bc-badge variant="info" text="Senior"></bc-badge></td>
+          <td>95.40</td>
+          <td class="bc-text-right">
+            <bc-icon-button icon="chevron-right" size="sm"></bc-icon-button>
+          </td>
+        </tr>
+        <tr>
+          <td>#2</td>
+          <td>Juan Pérez</td>
+          <td>Arquitecto Software</td>
+          <td><bc-badge variant="info" text="Senior"></bc-badge></td>
+          <td>93.12</td>
+          <td class="bc-text-right">
+            <bc-icon-button icon="chevron-right" size="sm"></bc-icon-button>
+          </td>
+        </tr>
+        <tr>
+          <td>#3</td>
+          <td>María Londoño</td>
+          <td>CDE</td>
+          <td><bc-badge variant="info" text="Senior"></bc-badge></td>
+          <td>91.85</td>
+          <td class="bc-text-right">
+            <bc-icon-button icon="chevron-right" size="sm"></bc-icon-button>
+          </td>
+        </tr>
+      </tbody>
 
-  describe('Create Mode (default)', () => {
-    beforeEach(() => {
-      setupComponent();
-    });
+      <!-- Sección Destacada: Tu Posición -->
+      <tbody class="bc-border-top-thick">
+        <tr class="bc-bg-warning-light">
+          <td colspan="6" class="bc-text-caption bc-font-weight-bold bc-py-1">
+            TU POSICIÓN <span class="bc-float-right bc-text-muted">TOP 12%</span>
+          </td>
+        </tr>
+        <!-- Fila del usuario activo -->
+        <tr class="bc-table-row-selected">
+          <td class="bc-font-weight-bold">#325</td>
+          <td class="bc-font-weight-bold">Luis Gómez (Tú)</td>
+          <td>CDE</td>
+          <td><bc-badge variant="warning" text="Semi Senior"></bc-badge></td>
+          <td class="bc-font-weight-bold">79.72</td>
+          <td class="bc-text-right">
+            <bc-icon-button icon="chevron-right" size="sm"></bc-icon-button>
+          </td>
+        </tr>
+        <tr>
+          <td>#326</td>
+          <td>Carlos Restrepo</td>
+          <td>QA Engineer</td>
+          <td><bc-badge variant="warning" text="Semi Senior"></bc-badge></td>
+          <td>79.50</td>
+          <td class="bc-text-right">
+            <bc-icon-button icon="chevron-right" size="sm"></bc-icon-button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-    it('should initialize in create mode with enabled fields', () => {
-      expect(spectator.component.$isEditMode()).toBe(false);
-      expect(spectator.component.$isViewMode()).toBe(false);
-      expect(spectator.component.resourceForm.controls.organization.enabled).toBe(true);
-      expect(spectator.component.resourceForm.controls.repositoryName.enabled).toBe(true);
-    });
+    <!-- Paginación -->
+    <div class="bc-d-flex bc-justify-content-between bc-align-items-center bc-p-3 bc-border-top">
+      <span class="bc-text-caption bc-text-muted">Mostrando 1-12 de 328 elementos</span>
+      <bc-pagination 
+        total-pages="3" 
+        current-page="1">
+      </bc-pagination>
+    </div>
+  </bc-card>
 
-    it('should not submit if form is invalid', () => {
-      spectator.component.resourceForm.reset();
-      spectator.component.onSubmit();
-
-      expect(mockDocService.createResource).not.toHaveBeenCalled();
-    });
-
-    it('should call createResource and navigate on valid form submit', () => {
-      spectator.component.resourceForm.setValue({
-        organization: 'grupobancolombia-innersource',
-        repositoryName: 'NU5740001_Metrics_Doc',
-        name: 'Métricas',
-        description: 'Desc',
-        url: 'https://github.com/repo',
-      });
-
-      spectator.component.onSubmit();
-
-      expect(mockDocService.createResource).toHaveBeenCalledWith({
-        organization: 'grupobancolombia-innersource',
-        repositoryName: 'NU5740001_Metrics_Doc',
-        name: 'Métricas',
-        description: 'Desc',
-        url: 'https://github.com/repo',
-      });
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin/list-documents']);
-    });
-
-    it('should set $errorMessage and send event when createResource fails', () => {
-      mockDocService.createResource.mockReturnValue(
-        throwError(() => ({ error: { message: 'El recurso ya existe' } }))
-      );
-
-      spectator.component.resourceForm.setValue({
-        organization: 'org',
-        repositoryName: 'repo',
-        name: '',
-        description: '',
-        url: '',
-      });
-
-      spectator.component.onSubmit();
-
-      expect(spectator.component.$errorMessage()).toBe('El recurso ya existe');
-      expect(spectator.component.$isSubmitting()).toBe(false);
-      expect(mockEventsService.sendEvent).toHaveBeenCalledWith(
-        'error_notification',
-        { message: 'El recurso ya existe' }
-      );
-    });
-  });
-
-  describe('Edit Mode', () => {
-    beforeEach(() => {
-      setupComponent({
-        org: 'grupobancolombia-innersource',
-        repo: 'NU5740001_Metrics_Doc',
-        mode: EResourceViewMode.EDIT,
-      });
-    });
-
-    it('should initialize in edit mode and disable identity fields', () => {
-      expect(spectator.component.$isEditMode()).toBe(true);
-      expect(spectator.component.$isViewMode()).toBe(false);
-      expect(spectator.component.resourceForm.controls.organization.disabled).toBe(true);
-      expect(spectator.component.resourceForm.controls.repositoryName.disabled).toBe(true);
-      expect(mockDocService.getResourceById).toHaveBeenCalledWith(
-        'grupobancolombia-innersource',
-        'NU5740001_Metrics_Doc'
-      );
-    });
-
-    it('should call updateResource with editable fields only on submit', () => {
-      spectator.component.resourceForm.patchValue({
-        name: 'Nombre Editado',
-        description: 'Nueva descripción',
-        url: 'https://github.com/updated',
-      });
-
-      spectator.component.onSubmit();
-
-      expect(mockDocService.updateResource).toHaveBeenCalledWith(
-        'grupobancolombia-innersource',
-        'NU5740001_Metrics_Doc',
-        {
-          name: 'Nombre Editado',
-          description: 'Nueva descripción',
-          url: 'https://github.com/updated',
-        }
-      );
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin/list-documents']);
-    });
-
-    it('should set $errorMessage and send event when updateResource fails', () => {
-      mockDocService.updateResource.mockReturnValue(
-        throwError(() => ({ error: { message: 'Error al actualizar' } }))
-      );
-
-      spectator.component.onSubmit();
-
-      expect(spectator.component.$errorMessage()).toBe('Error al actualizar');
-      expect(spectator.component.$isSubmitting()).toBe(false);
-      expect(mockEventsService.sendEvent).toHaveBeenCalledWith(
-        'error_notification',
-        { message: 'Error al actualizar' }
-      );
-    });
-
-    it('should notify error when loadResourceData fails', () => {
-      mockDocService.getResourceById.mockReturnValue(
-        throwError(() => new Error('Error general'))
-      );
-
-      setupComponent({
-        org: 'grupobancolombia-innersource',
-        repo: 'NU5740001_Metrics_Doc',
-        mode: EResourceViewMode.EDIT,
-      });
-
-      expect(spectator.component.$errorMessage()).toBe('No se pudo cargar la información del recurso.');
-      expect(mockEventsService.sendEvent).toHaveBeenCalledWith(
-        'error_notification',
-        { message: 'No se pudo cargar la información del recurso.' }
-      );
-    });
-  });
-
-  describe('View Mode', () => {
-    beforeEach(() => {
-      setupComponent({
-        org: 'grupobancolombia-innersource',
-        repo: 'NU5740001_Metrics_Doc',
-        mode: EResourceViewMode.VIEW,
-      });
-    });
-
-    it('should disable entire form when in view mode', () => {
-      expect(spectator.component.$isViewMode()).toBe(true);
-      expect(spectator.component.resourceForm.disabled).toBe(true);
-    });
-
-    it('should not execute submit in view mode', () => {
-      spectator.component.onSubmit();
-
-      expect(mockDocService.createResource).not.toHaveBeenCalled();
-      expect(mockDocService.updateResource).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Computed Titles and Buttons', () => {
-    it('should show correct texts in Create Mode', () => {
-      setupComponent();
-
-      expect(spectator.component.$headerTitle()).toBe('Crear recurso de documentación');
-      expect(spectator.component.$headerSubtitle()).toBe('Registrar nuevo repositorio');
-      expect(spectator.component.$cancelButtonText()).toBe('Cancelar');
-      expect(spectator.component.$submitButtonText()).toBe('Guardar recurso');
-    });
-
-    it('should show correct texts in Edit Mode', () => {
-      setupComponent({
-        org: 'grupobancolombia-innersource',
-        repo: 'NU5740001_Metrics_Doc',
-        mode: EResourceViewMode.EDIT,
-      });
-
-      expect(spectator.component.$headerTitle()).toBe('Editar recurso de documentación');
-      expect(spectator.component.$headerSubtitle()).toBe('Actualizar información del repositorio');
-      expect(spectator.component.$cancelButtonText()).toBe('Cancelar');
-      expect(spectator.component.$submitButtonText()).toBe('Actualizar recurso');
-    });
-
-    it('should show correct texts in View Mode', () => {
-      setupComponent({
-        org: 'grupobancolombia-innersource',
-        repo: 'NU5740001_Metrics_Doc',
-        mode: EResourceViewMode.VIEW,
-      });
-
-      expect(spectator.component.$headerTitle()).toBe('Detalle del recurso de documentación');
-      expect(spectator.component.$headerSubtitle()).toBe('Visualización en modo lectura');
-      expect(spectator.component.$cancelButtonText()).toBe('Volver');
-    });
-  });
-
-  describe('onCancel', () => {
-    it('should navigate back to list-documents', () => {
-      setupComponent();
-
-      spectator.component.onCancel();
-
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin/list-documents']);
-    });
-  });
-});
+</div>
