@@ -1,507 +1,594 @@
-<div class="ranking-wrapper" >
+import { Component, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
-  <!--Estado de Carga Global(Opcional con nv - preloader)-- >
-    <!-- < div class="loading-overlay" > <nv-preloader size = "lg" > </nv-preloader></div > -->
+export interface UserRank {
+  position: number;
+  name: string;
+  role: string;
+  level: 'Senior' | 'Semi Senior' | 'Junior';
+  score: number;
+  isCurrentUser?: boolean;
+}
 
-      <!--Tarjeta Superior: Perfil y Puntaje-- >
-        <nv-card - container class="profile-card" >
-          <div class="profile-content" >
+@Component({
+  selector: 'app-ranking',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './ranking.component.html',
+  styleUrls: ['./ranking.component.scss']
+})
+export class RankingComponent {
+  // Datos del perfil superior
+  currentUser = signal({
+    name: 'Luis García',
+    email: 'lgarcia@empresa.com.co',
+    company: 'Digital / Fábrica de software',
+    avatar: 'https://i.pravatar.cc/150?img=11',
+    score: 79.72,
+    maxScore: 100,
+    rank: 325,
+    topPercent: 12,
+    level: 'Semi Senior',
+    currentLevelStep: 3,
+    totalLevelSteps: 5
+  });
 
-            <!--Datos Usuario-- >
-              <div class="user-info" >
-                <div class="user-avatar" >
-                  <img src="https://via.placeholder.com/64" alt = "Foto de perfil" />
-                    </div>
-                    < div class="user-details" >
-                      <h2 class="user-name" > Luis Gómez </h2>
-                        < p class="user-email" > usuario@correo.com.co</p>
-                          < p class="user-area" > Digital · Fábrica de software </p>
-                            </div>
-                            </div>
+  // Filtro
+  selectedLevel = signal<string>('all');
 
-                            < !--Métricas del Puntaje-- >
-                              <div class="score-summary" >
-                                <div class="score-main" >
-                                  <span class="score-label" > PUNTAJE GLOBAL </span>
-                                    < span class="score-value" > 79.72 </span>
-                                      < div class="score-meta" >
-                                        <span>Ranking < strong >#325 < /strong></span >
-                                          <span class="score-top" > Top 12 % </span>
-                                            </div>
-                                            </div>
+  // Listado general del ranking
+  rankings = signal<UserRank[]>([
+    { position: 1, name: 'Carolina Mendez', role: 'Tech Lead', level: 'Senior', score: 95.40 },
+    { position: 2, name: 'Andrés Gómez', role: 'Arquitecto Software', level: 'Senior', score: 93.12 },
+    { position: 3, name: 'María Londoño', role: 'CDE', level: 'Senior', score: 91.85 },
+    { position: 4, name: 'Pedro Morales', role: 'Product Manager', level: 'Senior', score: 89.60 },
+    { position: 5, name: 'Laura Restrepo', role: 'QA Lead', level: 'Senior', score: 88.20 },
+    { position: 6, name: 'Santiago Ruiz', role: 'UX Designer', level: 'Senior', score: 86.40 },
+    { position: 7, name: 'Felipe Vargas', role: 'DevOps Engineer', level: 'Senior', score: 84.90 },
+    { position: 8, name: 'Daniela Marín', role: 'Data Analyst', level: 'Senior', score: 83.15 },
+    { position: 9, name: 'Camilo Torres', role: 'CDE', level: 'Senior', score: 81.80 },
+    { position: 10, name: 'Juan Castrillón', role: 'QA Engineer', level: 'Senior', score: 80.40 }
+  ]);
 
-                                            < div class="score-badge-box" >
-                                              <div class="badge-row" >
-                                                <span class="points-ratio" > 79.72 / 100 </span>
-                                                  < span class="pill-badge pill-neutral" >
-                                                    <nv-status variant = "warning" > </nv-status>
-              Semi Senior
-  </span>
-  </div>
-  < span class="level-indicator" > Nivel 3 de 5 </span>
+  // Contexto del usuario logueado en la tabla
+  userContextRankings = signal<UserRank[]>([
+    { position: 325, name: 'Luis García', role: 'CDE', level: 'Semi Senior', score: 79.72, isCurrentUser: true },
+    { position: 326, name: 'Marta Pérez', role: 'QA Engineer', level: 'Semi Senior', score: 79.50 },
+    { position: 327, name: 'Carlos Ortega', role: 'Desarrollador', level: 'Semi Senior', score: 78.90 },
+    { position: 328, name: 'Sofía Castro', role: 'Analista', level: 'Junior', score: 75.20 }
+  ]);
+
+  // Rankings filtrados
+  filteredRankings = computed(() => {
+    const filter = this.selectedLevel();
+    if (filter === 'all') return this.rankings();
+    return this.rankings().filter(item => item.level.toLowerCase() === filter.toLowerCase());
+  });
+
+  onFilterChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    this.selectedLevel.set(select.value);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+<div class="ranking-wrapper">
+  <!-- Cabecera principal -->
+  <header class="page-header">
+    <div class="header-titles">
+      <h1>Tu Ranking</h1>
+      <p>Consulta tu posición y el listado general en tiempo real</p>
     </div>
+  </header>
+
+  <!-- Tarjeta de Perfil / Scorecard -->
+  <section class="user-card">
+    <div class="profile-info">
+      <img [src]="currentUser().avatar" alt="Avatar" class="avatar" />
+      <div class="info-text">
+        <h2 class="name">{{ currentUser().name }}</h2>
+        <span class="email">{{ currentUser().email }}</span>
+        <span class="meta">{{ currentUser().company }}</span>
+      </div>
     </div>
 
+    <div class="profile-metrics">
+      <div class="score-block">
+        <span class="label">PUNTAJE GLOBAL</span>
+        <div class="score-row">
+          <span class="primary-score">{{ currentUser().score | number:'1.2-2' }}</span>
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="(currentUser().score / currentUser().maxScore) * 100"></div>
+            </div>
+            <div class="progress-labels">
+              <span>{{ currentUser().score }} / {{ currentUser().maxScore }}</span>
+              <span>{{ currentUser().level }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="rank-subtext">
+          <span>Ranking <strong>#{{ currentUser().rank }}</strong></span>
+          <span class="badge-top">Top {{ currentUser().topPercent }}%</span>
+          <span class="steps">Nivel {{ currentUser().currentLevelStep }} de {{ currentUser().totalLevelSteps }}</span>
+        </div>
+      </div>
     </div>
-    </nv-card-container>
+  </section>
 
-    < !--Pestañas Manuales-- >
-      <nav class="custom-tabs" >
-        <button type="button" class="tab-btn" > General </button>
-          < button type = "button" class="tab-btn active" > Ranking </button>
-            </nav>
+  <!-- Pestañas de navegación -->
+  <nav class="sub-nav">
+    <button class="nav-tab active">Ranking</button>
+  </nav>
 
-            < !--Cabecera de la Tabla y Filtros-- >
-              <div class="table-controls" >
-                <div class="control-title" >
-                  <h3>Ranking de Evaluaciones </h3>
-                    < span > Compara tu rendimiento general </span>
-                      </div>
-
-                      < div class="control-filter" >
-                        <label for= "level-filter" > Filtrar por: </label>
-                          < div class="select-wrapper" >
-                            <select id="level-filter" >
-                              <option value="all" > Todos los niveles </option>
-                                < option value = "senior" > Senior </option>
-                                  < option value = "semi-senior" > Semi Senior </option>
-                                    < option value = "junior" > Junior </option>
-                                      </select>
-                                      < span class="chevron-icon" > </span>
-                                        </div>
-                                        </div>
-                                        </div>
-
-                                        < !--Contenedor de la Tabla-- >
-                                          <nv-card - container class="table-card" >
-                                            <div class="table-responsive" >
-                                              <table class="ranking-table" >
-                                                <thead>
-                                                <tr>
-                                                <th>Posición </th>
-                                                < th > Nombre </th>
-                                                < th > Rol </th>
-                                                < th > Nivel </th>
-                                                < th > Puntaje </th>
-                                                < th class="text-right" > Acción </th>
-                                                  </tr>
-                                                  </thead>
-                                                  < tbody >
-                                                  <!--Top Ranking-- >
-                                                    <tr>
-                                                    <td>#1 </td>
-                                                      < td class="font-medium" > Carolina Méndez </td>
-                                                        < td > Tech Lead </td>
-                                                          < td >
-                                                          <span class="pill-badge pill-senior" >
-                                                            <nv-status variant = "success" > </nv-status>
-Senior
-  </span>
-  </td>
-  < td class="font-medium" > 95.40 </td>
-    < td class="text-right" > <button type="button" class="row-arrow" >& rsaquo; </button></td >
-      </tr>
-      < tr >
-      <td>#2 </td>
-        < td class="font-medium" > Juan Pérez </td>
-          < td > Arquitecto Software </td>
-            < td >
-            <span class="pill-badge pill-senior" >
-              <nv-status variant = "success" > </nv-status>
-Senior
-  </span>
-  </td>
-  < td class="font-medium" > 93.12 </td>
-    < td class="text-right" > <button type="button" class="row-arrow" >& rsaquo; </button></td >
-      </tr>
-      < tr >
-      <td>#3 </td>
-        < td class="font-medium" > María Londoño </td>
-          < td > CDE </td>
-          < td >
-          <span class="pill-badge pill-senior" >
-            <nv-status variant = "success" > </nv-status>
-Senior
-  </span>
-  </td>
-  < td class="font-medium" > 91.85 </td>
-    < td class="text-right" > <button type="button" class="row-arrow" >& rsaquo; </button></td >
-      </tr>
-
-      < !--Divisor: Tu Posición-- >
-        <tr class="highlight-header" >
-          <td colspan="6" >
-            <span>TU POSICIÓN </span>
-              < span class="float-right" > TOP 12 % </span>
-                </td>
-                </tr>
-
-                < !--Registro del Usuario Actual-- >
-                  <tr class="user-row-active" >
-                    <td class="font-bold" >#325 </td>
-                      < td class="font-bold" > Luis Gómez(Tú) </td>
-                        < td > CDE </td>
-                        < td >
-                        <span class="pill-badge pill-neutral" >
-                          <nv-status variant = "warning" > </nv-status>
-                Semi Senior
-  </span>
-  </td>
-  < td class="font-bold" > 79.72 </td>
-    < td class="text-right" > <button type="button" class="row-arrow" >& rsaquo; </button></td >
-      </tr>
-
-      < tr >
-      <td>#326 </td>
-        < td class="font-medium" > Carlos Restrepo </td>
-          < td > QA Engineer </td>
-            < td >
-            <span class="pill-badge pill-neutral" >
-              <nv-status variant = "warning" > </nv-status>
-                Semi Senior
-  </span>
-  </td>
-  < td class="font-medium" > 79.50 </td>
-    < td class="text-right" > <button type="button" class="row-arrow" >& rsaquo; </button></td >
-      </tr>
-      </tbody>
-      </table>
+  <!-- Contenedor del Listado y Filtros -->
+  <section class="table-container">
+    <div class="table-toolbar">
+      <div class="toolbar-title">
+        <h3>Ranking General</h3>
+        <span class="company-tag">{{ currentUser().company }}</span>
       </div>
 
-      < !--Paginador Manual-- >
-        <div class="custom-pagination" >
-          <span class="pagination-info" > Mostrando 1 - 12 de 328 elementos </span>
-            < div class="pagination-nav" >
-              <button type="button" class="page-arrow" disabled >& lsaquo; </button>
-                < button type = "button" class="page-num active" > 1 </button>
-                  < button type = "button" class="page-num" > 2 </button>
-                    < button type = "button" class="page-num" > 3 </button>
-                      < button type = "button" class="page-arrow" >& rsaquo; </button>
-                        </div>
-                        </div>
-                        </nv-card-container>
+      <div class="toolbar-actions">
+        <label for="levelFilter">Filtrar por:</label>
+        <select id="levelFilter" (change)="onFilterChange($event)">
+          <option value="all">Todos los niveles</option>
+          <option value="senior">Senior</option>
+          <option value="semi senior">Semi Senior</option>
+          <option value="junior">Junior</option>
+        </select>
+      </div>
+    </div>
 
-                        </div>
+    <!-- Tabla -->
+    <div class="table-responsive">
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th class="col-pos">Posición</th>
+            <th class="col-name">Nombre</th>
+            <th class="col-role">Rol</th>
+            <th class="col-level">Nivel</th>
+            <th class="col-score">Puntaje</th>
+            <th class="col-action">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Filas de top ranking -->
+          @for (item of filteredRankings(); track item.position) {
+            <tr>
+              <td class="col-pos">#{{ item.position }}</td>
+              <td class="col-name font-medium">{{ item.name }}</td>
+              <td class="col-role text-muted">{{ item.role }}</td>
+              <td class="col-level">
+                <span class="pill-badge" [attr.data-level]="item.level">{{ item.level }}</span>
+              </td>
+              <td class="col-score font-medium">{{ item.score | number:'1.2-2' }}</td>
+              <td class="col-action">
+                <button class="btn-arrow" aria-label="Ver detalles">&rsaquo;</button>
+              </td>
+            </tr>
+          }
+
+          <!-- Separador: TU POSICIÓN -->
+          <tr class="separator-row">
+            <td colspan="6">
+              <div class="separator-content">
+                <span>TU POSICIÓN</span>
+                <span class="top-tag">TOP {{ currentUser().topPercent }}%</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Filas relativas a la posición del usuario -->
+          @for (item of userContextRankings(); track item.position) {
+            <tr [class.highlighted]="item.isCurrentUser">
+              <td class="col-pos">#{{ item.position }}</td>
+              <td class="col-name font-medium">{{ item.name }}</td>
+              <td class="col-role text-muted">{{ item.role }}</td>
+              <td class="col-level">
+                <span class="pill-badge" [attr.data-level]="item.level">{{ item.level }}</span>
+              </td>
+              <td class="col-score font-medium">{{ item.score | number:'1.2-2' }}</td>
+              <td class="col-action">
+                <button class="btn-arrow" aria-label="Ver detalles">&rsaquo;</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <footer class="table-footer">
+      <span class="counter-text">Mostrando 1-14 de 328 elementos</span>
+      <div class="pagination">
+        <button class="page-btn" aria-label="Anterior">&lsaquo;</button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <button class="page-btn" aria-label="Siguiente">&rsaquo;</button>
+      </div>
+    </footer>
+  </section>
+</div>
 
 
-
-
-
-
-
-
-$primary-yellow: #fd2;
-$text-dark: #2c2a29;
-$text-muted: #6c757d;
-$border-light: #e9ecef;
-$bg-highlight: #fff9e6;
+$bg-main: #f9fafb;
+$card-bg: #ffffff;
+$accent-yellow: #f8c232;
+$accent-soft-yellow: #fef9e7;
+$border-color: #ebecef;
+$text-main: #23272f;
+$text-muted: #737b8b;
+$pill-bg-green: #e6f7f2;
+$pill-text-green: #0a8f69;
+$pill-bg-yellow: #fef6e7;
+$pill-text-yellow: #b27300;
+$pill-bg-blue: #eef4ff;
+$pill-text-blue: #3563e9;
 
 .ranking-wrapper {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1.5rem;
-  font-family: inherit;
-  color: $text-dark;
+  background-color: $bg-main;
+  min-height: 100vh;
+  padding: 2.5rem 3rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: $text-main;
+}
 
-  // NV Card overrides & setups
-  nv-card-container {
-    display: block;
-    background: #fff;
-    border-radius: 8px;
-    border: 1px solid $border-light;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+// Cabecera superior
+.page-header {
+  margin-bottom: 2rem;
+  .header-titles {
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin: 0;
+      color: $text-main;
+    }
+    p {
+      color: $text-muted;
+      margin-top: 0.25rem;
+      font-size: 0.9rem;
+    }
   }
+}
 
-  .profile-card {
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+// Tarjeta de perfil
+.user-card {
+  background: $card-bg;
+  border-radius: 12px;
+  border: 1px solid $border-color;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 
-    .profile-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1.5rem;
+  .profile-info {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+
+    .avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
     }
 
-    .user-info {
+    .info-text {
       display: flex;
-      align-items: center;
-      gap: 1rem;
+      flex-direction: column;
+      gap: 0.2rem;
 
-      .user-avatar img {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        object-fit: cover;
-      }
-
-      .user-name {
+      .name {
         margin: 0;
-        font-size: 1.15rem;
+        font-size: 1.25rem;
         font-weight: 700;
       }
-      .user-email, .user-area {
+      .email, .meta {
+        font-size: 0.85rem;
+        color: $text-muted;
+      }
+    }
+  }
+
+  .profile-metrics {
+    .score-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.5rem;
+
+      .label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        color: $text-muted;
+      }
+
+      .score-row {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+
+        .primary-score {
+          font-size: 2.2rem;
+          font-weight: 800;
+        }
+
+        .progress-container {
+          width: 170px;
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+
+          .progress-bar {
+            height: 10px;
+            background: #edeef2;
+            border-radius: 999px;
+            overflow: hidden;
+
+            .progress-fill {
+              background: $accent-yellow;
+              height: 100%;
+              border-radius: 999px;
+            }
+          }
+
+          .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: $text-muted;
+          }
+        }
+      }
+
+      .rank-subtext {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.8rem;
+        color: $text-muted;
+
+        strong {
+          color: $text-main;
+        }
+
+        .badge-top {
+          background-color: #f1f3f5;
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+      }
+    }
+  }
+}
+
+// Navegación de pestañas
+.sub-nav {
+  margin-top: 2rem;
+  border-bottom: 2px solid $border-color;
+  display: flex;
+
+  .nav-tab {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    color: $text-muted;
+    position: relative;
+    top: 2px;
+
+    &.active {
+      color: $text-main;
+      border: 1px solid $border-color;
+      border-bottom: 2px solid $accent-yellow;
+      background: $card-bg;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+  }
+}
+
+// Tabla contenedora
+.table-container {
+  background: $card-bg;
+  border: 1px solid $border-color;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 1.5rem;
+
+  .table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+
+    .toolbar-title {
+      h3 {
         margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+      .company-tag {
         font-size: 0.85rem;
         color: $text-muted;
       }
     }
 
-    .score-summary {
-      display: flex;
-      align-items: center;
-      gap: 2rem;
-
-      .score-main {
-        text-align: right;
-
-        .score-label {
-          display: block;
-          font-size: 0.7rem;
-          letter-spacing: 0.5px;
-          color: $text-muted;
-          font-weight: 600;
-        }
-
-        .score-value {
-          font-size: 2.2rem;
-          font-weight: 800;
-          line-height: 1.1;
-        }
-
-        .score-meta {
-          font-size: 0.8rem;
-          color: $text-muted;
-          .score-top {
-            color: #28a745;
-            margin-left: 0.5rem;
-            font-weight: 600;
-          }
-        }
-      }
-
-      .score-badge-box {
-        background: #f8f9fa;
-        border: 1px solid $border-light;
-        padding: 0.6rem 1rem;
-        border-radius: 6px;
-
-        .badge-row {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-
-          .points-ratio {
-            font-size: 0.85rem;
-            font-weight: 600;
-          }
-        }
-
-        .level-indicator {
-          display: block;
-          font-size: 0.75rem;
-          color: $text-muted;
-          margin-top: 0.25rem;
-        }
-      }
-    }
-  }
-
-  // Pestañas
-  .custom-tabs {
-    display: flex;
-    gap: 1rem;
-    border-bottom: 1px solid $border-light;
-    margin-bottom: 1.5rem;
-
-    .tab-btn {
-      background: none;
-      border: none;
-      padding: 0.75rem 1.25rem;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      color: $text-muted;
-      position: relative;
-
-      &.active {
-        color: $text-dark;
-
-        &::after {
-          content: '';
-          position: absolute;
-          bottom: -1px;
-          left: 0;
-          width: 100%;
-          height: 3px;
-          background: $primary-yellow;
-        }
-      }
-    }
-  }
-
-  // Cabecera Controles
-  .table-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-
-    .control-title {
-      h3 { margin: 0; font-size: 1.05rem; }
-      span { font-size: 0.8rem; color: $text-muted; }
-    }
-
-    .control-filter {
+    .toolbar-actions {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       font-size: 0.85rem;
+      color: $text-muted;
 
-      .select-wrapper {
-        position: relative;
-
-        select {
-          appearance: none;
-          background: #fff;
-          border: 1px solid #ced4da;
-          padding: 0.4rem 2rem 0.4rem 0.75rem;
-          border-radius: 4px;
-          font-size: 0.85rem;
-          cursor: pointer;
-        }
-
-        .chevron-icon {
-          position: absolute;
-          right: 0.75rem;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 0;
-          height: 0;
-          border-left: 4px solid transparent;
-          border-right: 4px solid transparent;
-          border-top: 4px solid $text-dark;
-          pointer-events: none;
-        }
+      select {
+        border: 1px solid $border-color;
+        border-radius: 6px;
+        padding: 0.35rem 0.75rem;
+        outline: none;
+        background: $card-bg;
+        font-size: 0.85rem;
+        color: $text-main;
       }
     }
   }
-
-  // Tabla
-  .table-card {
-    overflow: hidden;
-
-    .ranking-table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.85rem;
-
-      th {
-        padding: 0.85rem 1.25rem;
-        background: #fafafa;
-        color: $text-muted;
-        font-weight: 600;
-        border-bottom: 1px solid $border-light;
-      }
-
-      td {
-        padding: 0.85rem 1.25rem;
-        border-bottom: 1px solid #f1f3f5;
-      }
-
-      .highlight-header td {
-        background: #fdfae7;
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: $text-dark;
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-      }
-
-      .user-row-active td {
-        background: $bg-highlight;
-        border-bottom: 1px solid #f3e5b5;
-      }
-
-      .row-arrow {
-        background: none;
-        border: none;
-        font-size: 1.25rem;
-        color: #adb5bd;
-        cursor: pointer;
-        &:hover { color: $text-dark; }
-      }
-    }
-  }
-
-  // Paginación
-  .custom-pagination {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
-    border-top: 1px solid $border-light;
-    font-size: 0.8rem;
-    color: $text-muted;
-
-    .pagination-nav {
-      display: flex;
-      gap: 0.25rem;
-
-      button {
-        min-width: 28px;
-        height: 28px;
-        padding: 0 0.4rem;
-        border: 1px solid transparent;
-        background: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.8rem;
-
-        &.active {
-          border-color: #ced4da;
-          background: #fff;
-          font-weight: 700;
-          color: $text-dark;
-        }
-
-        &:disabled {
-          cursor: not-allowed;
-          opacity: 0.4;
-        }
-      }
-    }
-  }
-
-  // Badges con nv-status
-  .pill-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-
-    &.pill-senior {
-      background: #eef2ff;
-      color: #3b5998;
-    }
-
-    &.pill-neutral {
-      background: #e9ecef;
-      color: $text-dark;
-    }
-  }
-
-  // Clases utilitarias
-  .font-bold { font-weight: 700; }
-  .font-medium { font-weight: 500; }
-  .text-right { text-align: right; }
-  .float-right { float: right; }
 }
 
+.table-responsive {
+  overflow-x: auto;
+}
 
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+
+  th {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    border-bottom: 1px solid $border-color;
+  }
+
+  td {
+    padding: 1rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f2f3f5;
+  }
+
+  .font-medium {
+    font-weight: 600;
+  }
+
+  .text-muted {
+    color: $text-muted;
+  }
+
+  .col-action {
+    text-align: right;
+  }
+
+  .btn-arrow {
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    color: $text-muted;
+    cursor: pointer;
+    line-height: 1;
+    &:hover {
+      color: $text-main;
+    }
+  }
+
+  // Badges por nivel
+  .pill-badge {
+    padding: 0.3rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    display: inline-block;
+
+    &[data-level='Senior'] {
+      background-color: $pill-bg-green;
+      color: $pill-text-green;
+    }
+    &[data-level='Semi Senior'] {
+      background-color: $pill-bg-yellow;
+      color: $pill-text-yellow;
+    }
+    &[data-level='Junior'] {
+      background-color: $pill-bg-blue;
+      color: $pill-text-blue;
+    }
+  }
+
+  // Fila divisoria: "TU POSICIÓN"
+  .separator-row td {
+    background: #fbfbfc;
+    padding: 0.6rem 1rem;
+    border-top: 1px solid $border-color;
+    border-bottom: 1px solid $border-color;
+
+    .separator-content {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: $text-muted;
+
+      .top-tag {
+        color: $text-main;
+      }
+    }
+  }
+
+  // Fila destacada del usuario actual
+  tr.highlighted td {
+    background-color: $accent-soft-yellow;
+    font-weight: 600;
+  }
+}
+
+// Paginador
+.table-footer {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: $text-muted;
+
+  .pagination {
+    display: flex;
+    gap: 0.35rem;
+
+    .page-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid transparent;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: $text-muted;
+      transition: all 0.2s ease;
+
+      &.active {
+        border-color: $accent-yellow;
+        background: $accent-soft-yellow;
+        color: $text-main;
+        font-weight: 600;
+      }
+
+      &:hover:not(.active) {
+        background-color: #f1f3f5;
+      }
+    }
+  }
+}
 
