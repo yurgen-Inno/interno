@@ -1,157 +1,164 @@
-<div class="bc-container bc-p-4">
+<div class="nv-container nv-p-4">
 
   <!-- Tarjeta de Perfil y Puntaje Global -->
-  <bc-card elevation="1" class="bc-mb-4">
-    <div class="bc-d-flex bc-justify-content-between bc-align-items-center">
-      
-      <!-- Información del Usuario -->
-      <div class="bc-d-flex bc-align-items-center">
-        <bc-avatar 
-          size="lg" 
-          src="url-foto-usuario.jpg" 
-          alt="Foto de perfil">
-        </bc-avatar>
-        <div class="bc-ml-3">
-          <h2 class="bc-h4 bc-m-0">Luis Gómez</h2>
-          <p class="bc-text-muted bc-m-0">usuario@correo.com.co</p>
-          <p class="bc-text-caption bc-m-0">Digital - Fábrica de software</p>
-        </div>
-      </div>
-
-      <!-- Resumen de Puntaje -->
-      <div class="bc-d-flex bc-align-items-center">
-        <div class="bc-text-right bc-mr-4">
-          <span class="bc-text-caption bc-text-muted bc-d-block">PUNTAJE GLOBAL</span>
-          <span class="bc-display-4 bc-font-weight-bold">79.72</span>
-          <div class="bc-text-caption bc-text-muted">
-            <span>Ranking <strong>#325</strong></span> · <span class="bc-text-success">Top 12%</span>
+  <nv-card-container elevation="1" class="nv-mb-4">
+    <nv-card-body>
+      <div class="nv-d-flex nv-justify-content-between nv-align-items-center">
+        
+        <!-- Información del Usuario -->
+        <div class="nv-d-flex nv-align-items-center">
+          <nv-avatar 
+            size="lg" 
+            src="url-foto-usuario.jpg" 
+            alt="Foto de perfil">
+          </nv-avatar>
+          <div class="nv-ml-3">
+            <h2 class="nv-text-heading-sm nv-m-0">Luis Gómez</h2>
+            <p class="nv-text-body-sm nv-text-secondary nv-m-0">usuario@correo.com.co</p>
+            <p class="nv-text-caption nv-text-secondary nv-m-0">Digital - Fábrica de software</p>
           </div>
         </div>
 
-        <bc-card variant="neutral" class="bc-p-2 bc-bg-light">
-          <div class="bc-d-flex bc-justify-content-between">
-            <span class="bc-text-caption">79.72 / 100</span>
-            <bc-badge variant="secondary" text="Semi Senior"></bc-badge>
+        <!-- Resumen de Puntaje -->
+        <div class="nv-d-flex nv-align-items-center">
+          <div class="nv-text-right nv-mr-4">
+            <span class="nv-text-caption nv-text-secondary nv-d-block">PUNTAJE GLOBAL</span>
+            <span class="nv-text-display-md nv-font-bold">79.72</span>
+            <div class="nv-text-caption nv-text-secondary">
+              <span>Ranking <strong>#325</strong></span> · <span class="nv-text-success">Top 12%</span>
+            </div>
           </div>
-          <div class="bc-text-caption bc-text-muted bc-mt-2">Nivel 3 de 5</div>
-        </bc-card>
+
+          <!-- Sub-tarjeta para el nivel -->
+          <nv-card-container variant="subtle" class="nv-p-2">
+            <nv-card-body class="nv-p-0">
+              <div class="nv-d-flex nv-justify-content-between nv-align-items-center nv-gap-2">
+                <span class="nv-text-caption nv-font-medium">79.72 / 100</span>
+                <nv-tag variant="neutral" size="sm">Semi Senior</nv-tag>
+              </div>
+              <div class="nv-text-caption nv-text-secondary nv-mt-1">Nivel 3 de 5</div>
+            </nv-card-body>
+          </nv-card-container>
+        </div>
+
       </div>
+    </nv-card-body>
+  </nv-card-container>
 
-    </div>
-  </bc-card>
+  <!-- Navegación por Pestañas -->
+  <nv-tabs-container class="nv-mb-4" active-tab="ranking">
+    <nv-tab id="general" label="General"></nv-tab>
+    <nv-tab id="ranking" label="Ranking"></nv-tab>
+  </nv-tabs-container>
 
-  <!-- Pestañas (Tabs) -->
-  <bc-tabs class="bc-mb-4">
-    <bc-tab label="General"></bc-tab>
-    <bc-tab label="Ranking" active></bc-tab>
-  </bc-tabs>
-
-  <!-- Controles y Filtros -->
-  <div class="bc-d-flex bc-justify-content-between bc-align-items-center bc-mb-3">
+  <!-- Filtro Superior -->
+  <div class="nv-d-flex nv-justify-content-between nv-align-items-center nv-mb-3">
     <div>
-      <h3 class="bc-h5 bc-m-0">Ranking de Evaluaciones</h3>
-      <small class="bc-text-muted">Compara tu rendimiento general</small>
+      <h3 class="nv-text-heading-xs nv-m-0">Ranking de Evaluaciones</h3>
+      <span class="nv-text-caption nv-text-secondary">Compara tu rendimiento general</span>
     </div>
 
-    <div style="width: 260px;">
-      <bc-select 
+    <div style="width: 250px;">
+      <nv-select 
         label="Filtrar por" 
         value="all" 
         placeholder="Todos los niveles">
-        <bc-option value="all">Todos los niveles</bc-option>
-        <bc-option value="senior">Senior</bc-option>
-        <bc-option value="semi-senior">Semi Senior</bc-option>
-        <bc-option value="junior">Junior</bc-option>
-      </bc-select>
+        <nv-select-option value="all">Todos los niveles</nv-select-option>
+        <nv-select-option value="senior">Senior</nv-select-option>
+        <nv-select-option value="semi-senior">Semi Senior</nv-select-option>
+        <nv-select-option value="junior">Junior</nv-select-option>
+      </nv-select>
     </div>
   </div>
 
-  <!-- Tabla de Posiciones -->
-  <bc-card elevation="1" class="bc-p-0 bc-overflow-hidden">
-    <table class="bc-table bc-table-hover bc-table-striped-custom">
-      <thead>
-        <tr>
-          <th>Posición</th>
-          <th>Nombre</th>
-          <th>Rol</th>
-          <th>Nivel</th>
-          <th>Puntaje</th>
-          <th class="bc-text-right">Acción</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Filas del Top -->
-        <tr>
-          <td>#1</td>
-          <td>Carolina Méndez</td>
-          <td>Tech Lead</td>
-          <td><bc-badge variant="info" text="Senior"></bc-badge></td>
-          <td>95.40</td>
-          <td class="bc-text-right">
-            <bc-icon-button icon="chevron-right" size="sm"></bc-icon-button>
-          </td>
-        </tr>
-        <tr>
-          <td>#2</td>
-          <td>Juan Pérez</td>
-          <td>Arquitecto Software</td>
-          <td><bc-badge variant="info" text="Senior"></bc-badge></td>
-          <td>93.12</td>
-          <td class="bc-text-right">
-            <bc-icon-button icon="chevron-right" size="sm"></bc-icon-button>
-          </td>
-        </tr>
-        <tr>
-          <td>#3</td>
-          <td>María Londoño</td>
-          <td>CDE</td>
-          <td><bc-badge variant="info" text="Senior"></bc-badge></td>
-          <td>91.85</td>
-          <td class="bc-text-right">
-            <bc-icon-button icon="chevron-right" size="sm"></bc-icon-button>
-          </td>
-        </tr>
-      </tbody>
+  <!-- Contenedor de Tabla de Posiciones -->
+  <nv-card-container class="nv-p-0">
+    <nv-table-container>
+      <table class="nv-table">
+        <thead class="nv-table-head">
+          <tr class="nv-table-row">
+            <th class="nv-table-header-cell">Posición</th>
+            <th class="nv-table-header-cell">Nombre</th>
+            <th class="nv-table-header-cell">Rol</th>
+            <th class="nv-table-header-cell">Nivel</th>
+            <th class="nv-table-header-cell">Puntaje</th>
+            <th class="nv-table-header-cell nv-text-right">Acción</th>
+          </tr>
+        </thead>
+        <tbody class="nv-table-body">
+          <!-- Top 3 -->
+          <tr class="nv-table-row">
+            <td class="nv-table-cell">#1</td>
+            <td class="nv-table-cell">Carolina Méndez</td>
+            <td class="nv-table-cell">Tech Lead</td>
+            <td class="nv-table-cell"><nv-tag variant="brand" size="sm">Senior</nv-tag></td>
+            <td class="nv-table-cell">95.40</td>
+            <td class="nv-table-cell nv-text-right">
+              <nv-icon-button icon="nv-icon-chevron-right" size="sm" aria-label="Ver"></nv-icon-button>
+            </td>
+          </tr>
+          <tr class="nv-table-row">
+            <td class="nv-table-cell">#2</td>
+            <td class="nv-table-cell">Juan Pérez</td>
+            <td class="nv-table-cell">Arquitecto Software</td>
+            <td class="nv-table-cell"><nv-tag variant="brand" size="sm">Senior</nv-tag></td>
+            <td class="nv-table-cell">93.12</td>
+            <td class="nv-table-cell nv-text-right">
+              <nv-icon-button icon="nv-icon-chevron-right" size="sm" aria-label="Ver"></nv-icon-button>
+            </td>
+          </tr>
+          <tr class="nv-table-row">
+            <td class="nv-table-cell">#3</td>
+            <td class="nv-table-cell">María Londoño</td>
+            <td class="nv-table-cell">CDE</td>
+            <td class="nv-table-cell"><nv-tag variant="brand" size="sm">Senior</nv-tag></td>
+            <td class="nv-table-cell">91.85</td>
+            <td class="nv-table-cell nv-text-right">
+              <nv-icon-button icon="nv-icon-chevron-right" size="sm" aria-label="Ver"></nv-icon-button>
+            </td>
+          </tr>
 
-      <!-- Sección Destacada: Tu Posición -->
-      <tbody class="bc-border-top-thick">
-        <tr class="bc-bg-warning-light">
-          <td colspan="6" class="bc-text-caption bc-font-weight-bold bc-py-1">
-            TU POSICIÓN <span class="bc-float-right bc-text-muted">TOP 12%</span>
-          </td>
-        </tr>
-        <!-- Fila del usuario activo -->
-        <tr class="bc-table-row-selected">
-          <td class="bc-font-weight-bold">#325</td>
-          <td class="bc-font-weight-bold">Luis Gómez (Tú)</td>
-          <td>CDE</td>
-          <td><bc-badge variant="warning" text="Semi Senior"></bc-badge></td>
-          <td class="bc-font-weight-bold">79.72</td>
-          <td class="bc-text-right">
-            <bc-icon-button icon="chevron-right" size="sm"></bc-icon-button>
-          </td>
-        </tr>
-        <tr>
-          <td>#326</td>
-          <td>Carlos Restrepo</td>
-          <td>QA Engineer</td>
-          <td><bc-badge variant="warning" text="Semi Senior"></bc-badge></td>
-          <td>79.50</td>
-          <td class="bc-text-right">
-            <bc-icon-button icon="chevron-right" size="sm"></bc-icon-button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          <!-- Separador: Tu Posición -->
+          <tr class="nv-table-row nv-bg-highlight">
+            <td colspan="6" class="nv-table-cell nv-text-caption nv-font-bold">
+              TU POSICIÓN <span class="nv-float-right nv-text-secondary">TOP 12%</span>
+            </td>
+          </tr>
+
+          <!-- Posición del Usuario Logueado -->
+          <tr class="nv-table-row nv-table-row-selected">
+            <td class="nv-table-cell nv-font-bold">#325</td>
+            <td class="nv-table-cell nv-font-bold">Luis Gómez (Tú)</td>
+            <td class="nv-table-cell">CDE</td>
+            <td class="nv-table-cell"><nv-tag variant="neutral" size="sm">Semi Senior</nv-tag></td>
+            <td class="nv-table-cell nv-font-bold">79.72</td>
+            <td class="nv-table-cell nv-text-right">
+              <nv-icon-button icon="nv-icon-chevron-right" size="sm" aria-label="Ver"></nv-icon-button>
+            </td>
+          </tr>
+          <tr class="nv-table-row">
+            <td class="nv-table-cell">#326</td>
+            <td class="nv-table-cell">Carlos Restrepo</td>
+            <td class="nv-table-cell">QA Engineer</td>
+            <td class="nv-table-cell"><nv-tag variant="neutral" size="sm">Semi Senior</nv-tag></td>
+            <td class="nv-table-cell">79.50</td>
+            <td class="nv-table-cell nv-text-right">
+              <nv-icon-button icon="nv-icon-chevron-right" size="sm" aria-label="Ver"></nv-icon-button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </nv-table-container>
 
     <!-- Paginación -->
-    <div class="bc-d-flex bc-justify-content-between bc-align-items-center bc-p-3 bc-border-top">
-      <span class="bc-text-caption bc-text-muted">Mostrando 1-12 de 328 elementos</span>
-      <bc-pagination 
-        total-pages="3" 
+    <nv-card-footer class="nv-d-flex nv-justify-content-between nv-align-items-center">
+      <span class="nv-text-caption nv-text-secondary">Mostrando 1-12 de 328 elementos</span>
+      <nv-pagination 
+        total="328" 
+        items-per-page="12" 
         current-page="1">
-      </bc-pagination>
-    </div>
-  </bc-card>
+      </nv-pagination>
+    </nv-card-footer>
+  </nv-card-container>
 
 </div>
