@@ -1,142 +1,138 @@
-<header class="table-custom-header">
-  <!-- Izquierda: Título y subtítulo -->
-  <div class="header-texts">
-    <h2 class="title">Ranking</h2>
-    <p class="subtitle">Compara tu posición con otros miembros del equipo</p>
+<div class="card-list">
+  <div class="card-item" *ngFor="let item of items">
+    <div class="card-info">
+      <span class="card-title">{{ item.title }}</span>
+      <span class="card-subtitle">{{ item.subtitle }}</span>
+    </div>
+
+    <div class="card-actions">
+      <span class="badge" [attr.data-tag]="item.tagType">
+        {{ item.tagLabel }}
+      </span>
+
+      <!-- Icono de 6 puntos (drag handle) en SVG nativo -->
+      <button type="button" class="drag-handle" aria-label="Reordenar">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <circle cx="8" cy="6" r="1.5" />
+          <circle cx="16" cy="6" r="1.5" />
+          <circle cx="8" cy="12" r="1.5" />
+          <circle cx="16" cy="12" r="1.5" />
+          <circle cx="8" cy="18" r="1.5" />
+          <circle cx="16" cy="18" r="1.5" />
+        </svg>
+      </button>
+    </div>
   </div>
-
-  <!-- Derecha: Rol (Badge) + Botón Flecha -->
-  <div class="header-actions">
-    <!-- Badge de rol (puedes pasarle el rol dinámico o estático) -->
-    <span class="role-badge" [attr.data-role]="userRole">
-      {{ userRole }}
-    </span>
-
-    <button type="button" class="btn-arrow" aria-label="Ver más">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 18l6-6-6-6" />
-      </svg>
-    </button>
-  </div>
-</header>
+</div>
 
 
-$text-title: #111827;
-$text-sub: #6b7280;
-$border-color: #e5e7eb;
+$text-title: #2d3748;
+$text-sub: #718096;
+$border-card: #e2e8f0;
+$bg-card: #ffffff;
+$bg-hover: #f8fafc;
 
-.table-custom-header {
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* Espacio entre cada tarjeta */
+  width: 100%;
+}
+
+.card-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.5rem;
-  background-color: #ffffff;
-  border-bottom: 1px solid $border-color;
+  padding: 1rem 1.25rem;
+  background-color: $bg-card;
+  border: 1px solid $border-card;
+  border-radius: 0.75rem; /* Bordes suaves */
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
 
-  .header-texts {
+  &:hover {
+    background-color: $bg-hover;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .card-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.2rem;
 
-    .title {
-      margin: 0;
-      font-size: 1.25rem;
-      font-weight: 700;
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
       color: $text-title;
-      line-height: 1.2;
+      line-height: 1.25;
     }
 
-    .subtitle {
-      margin: 0;
-      font-size: 0.875rem;
+    .card-subtitle {
+      font-size: 0.8125rem;
       font-weight: 400;
       color: $text-sub;
-      line-height: 1.4;
+      line-height: 1.25;
     }
   }
 
-  .header-actions {
+  .card-actions {
     display: flex;
     align-items: center;
-    gap: 0.75rem; // Espacio entre el badge del rol y la flecha
-
-    .btn-arrow {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 2.25rem;
-      height: 2.25rem;
-      background: transparent;
-      border: none;
-      border-radius: 50%;
-      color: $text-sub;
-      cursor: pointer;
-      transition: background-color 0.15s ease, color 0.15s ease;
-
-      &:hover {
-        background-color: #f3f4f6;
-        color: $text-title;
-      }
-
-      svg {
-        display: block;
-      }
-    }
+    gap: 1rem;
   }
 }
 
-/* Estilos de los roles con los tonos definidos previamente */
-.role-badge {
+/* Badges con tonos pastel */
+.badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.65rem;
   font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1;
+  font-weight: 500;
   border-radius: 9999px;
-  border: 1px solid currentColor;
-  text-transform: capitalize;
 
-  // Senior -> Verde
-  &[data-role="senior"],
-  &[data-role="Senior"] {
-    background-color: #ecfdf5;
-    color: #047857;
-    border-color: #a7f3d0;
+  &[data-tag="design"] {
+    background-color: #e0e7ff;
+    color: #4338ca;
   }
 
-  // Semi-Senior -> Naranja
-  &[data-role="semi-senior"],
-  &[data-role="Semi-Senior"],
-  &[data-role="semisenior"] {
-    background-color: #fff7ed;
-    color: #c2410c;
-    border-color: #fed7aa;
+  &[data-tag="research"] {
+    background-color: #e0f2fe;
+    color: #0369a1;
   }
 
-  // Junior -> Azul
-  &[data-role="junior"],
-  &[data-role="Junior"] {
-    background-color: #eff6ff;
-    color: #1d4ed8;
-    border-color: #bfdbfe;
+  &[data-tag="ux"] {
+    background-color: #f1f5f9;
+    color: #475569;
   }
 
-  // Por defecto / Otros -> Gris
-  &[data-role="neutral"],
-  &:not([data-role]) {
-    background-color: #f3f4f6;
-    color: #4b5563;
-    border-color: #e5e7eb;
+  &[data-tag="dev"] {
+    background-color: #fef3c7;
+    color: #b45309;
+  }
+
+  &[data-tag="brand"] {
+    background-color: #fce7f3;
+    color: #be185d;
   }
 }
 
+/* Botón de arrastre */
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  color: #94a3b8;
+  cursor: grab;
 
-items = [
-  { title: 'Design System', subtitle: 'Typography & color tokens', tagLabel: 'Design', tagType: 'design' }, //[cite: 2]
-  { title: 'User Research', subtitle: 'Interview findings & insights', tagLabel: 'Research', tagType: 'research' }, //[cite: 2]
-  { title: 'Prototype', subtitle: 'Interactive flow mockups', tagLabel: 'UX', tagType: 'ux' }, //[cite: 2]
-  { title: 'Component Library', subtitle: 'Reusable UI elements', tagLabel: 'Dev', tagType: 'dev' }, //[cite: 2]
-  { title: 'Brand Guidelines', subtitle: 'Logo, voice & visual identity', tagLabel: 'Brand', tagType: 'brand' } //[cite: 2]
-];
+  &:active {
+    cursor: grabbing;
+  }
+
+  &:hover {
+    color: #475569;
+  }
+}
