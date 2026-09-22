@@ -1,0 +1,152 @@
+<div class="ranking-wrapper">
+  <!-- Cabecera principal -->
+  <header class="page-header">
+    <div class="header-titles">
+      <h1>Tu Ranking</h1>
+      <p>Consulta tu posición y el listado general en tiempo real</p>
+    </div>
+  </header>
+
+  <!-- Tarjeta de Perfil / Scorecard -->
+  <section class="user-card">
+    <div class="profile-info">
+      <img [src]="currentUser().avatar" alt="Avatar" class="avatar" />
+      <div class="info-text">
+        <h2 class="name">{{ currentUser().name }}</h2>
+        <span class="email">{{ currentUser().email }}</span>
+        <div class="meta-row">
+          <span class="role-badge">{{ currentUser().role }}</span>
+          <span class="company-name">{{ currentUser().company }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-metrics">
+      <div class="metrics-header">
+        <span class="label">PUNTAJE GLOBAL</span>
+        <div class="progress-box">
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="(currentUser().score / currentUser().maxScore) * 100"></div>
+          </div>
+          <div class="progress-labels">
+            <span>{{ currentUser().score | number:'1.2-2' }} / {{ currentUser().maxScore }}</span>
+            <span>{{ currentUser().level }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="metrics-body">
+        <div class="score-column">
+          <div class="primary-score">{{ currentUser().score | number:'1.2-2' }}</div>
+          <div class="rank-info">
+            <span class="rank-text"><strong>Ranking #{{ currentUser().rank }}</strong></span>
+            <span class="top-green">&uarr; Top {{ currentUser().topPercent }}%</span>
+          </div>
+        </div>
+
+        <div class="level-badge">
+          Nivel {{ currentUser().currentLevelStep }} de {{ currentUser().totalLevelSteps }}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pestañas de navegación -->
+  <nav class="sub-nav">
+    <button class="nav-tab active">Ranking</button>
+  </nav>
+
+  <!-- Contenedor del Listado y Filtros -->
+  <section class="table-container">
+    <!-- Cabecera de la tabla con filtro -->
+    <div class="table-toolbar">
+      <div class="toolbar-title">
+        <h3>Ranking de {{ currentUser().company }}</h3>
+        <p class="toolbar-subtitle">Consulta el ranking de tu equipo</p>
+      </div>
+
+      <div class="toolbar-actions">
+        <label for="levelFilter">Filtrar por:</label>
+        <div class="select-wrapper">
+          <select id="levelFilter" (change)="onFilterChange($event)">
+            <option value="all">Todos los niveles</option>
+            <option value="senior">Senior</option>
+            <option value="semi senior">Semi Senior</option>
+            <option value="junior">Junior</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-responsive">
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th class="col-pos">Posición</th>
+            <th class="col-name">Nombre</th>
+            <th class="col-role">Rol</th>
+            <th class="col-level">Nivel</th>
+            <th class="col-score">Puntaje</th>
+            <th class="col-action">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Filas de top ranking -->
+          @for (item of filteredRankings(); track item.position) {
+            <tr>
+              <td class="col-pos">#{{ item.position }}</td>
+              <td class="col-name font-medium">{{ item.name }}</td>
+              <td class="col-role text-muted">{{ item.role }}</td>
+              <td class="col-level">
+                <span class="pill-badge" [attr.data-level]="item.level">{{ item.level }}</span>
+              </td>
+              <td class="col-score font-medium">{{ item.score | number:'1.2-2' }}</td>
+              <td class="col-action">
+                <button class="btn-arrow" aria-label="Ver detalles">&rsaquo;</button>
+              </td>
+            </tr>
+          }
+
+          <!-- Separador: TU POSICIÓN -->
+          <tr class="separator-row">
+            <td colspan="6">
+              <div class="separator-content">
+                <span>TU POSICIÓN</span>
+                <span class="top-tag">TOP {{ currentUser().topPercent }}%</span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Filas relativas a la posición del usuario -->
+          @for (item of userContextRankings(); track item.position) {
+            <tr [class.highlighted]="item.isCurrentUser">
+              <td class="col-pos">#{{ item.position }}</td>
+              <td class="col-name font-medium">{{ item.name }}</td>
+              <td class="col-role text-muted">{{ item.role }}</td>
+              <td class="col-level">
+                <span class="pill-badge" [attr.data-level]="item.level">{{ item.level }}</span>
+              </td>
+              <td class="col-score font-medium">{{ item.score | number:'1.2-2' }}</td>
+              <td class="col-action">
+                <button class="btn-arrow" aria-label="Ver detalles">&rsaquo;</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación Separada -->
+    <footer class="table-footer">
+      <span class="counter-text">Mostrando 1-12 de 328 elementos</span>
+      <div class="pagination">
+        <button class="page-btn nav-btn" aria-label="Anterior">&lsaquo;</button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <button class="page-btn nav-btn" aria-label="Siguiente">&rsaquo;</button>
+      </div>
+    </footer>
+  </section>
+</div>

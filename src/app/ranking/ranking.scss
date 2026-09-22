@@ -1,0 +1,438 @@
+$bg-main: #f9fafb;
+$card-bg: #ffffff;
+$accent-yellow: #f8c232;
+$accent-soft-yellow: #fef9e7;
+$border-color: #ebecef;
+$text-main: #23272f;
+$text-muted: #737b8b;
+$pill-bg-green: #e6f7f2;
+$pill-text-green: #0a8f69;
+$pill-bg-yellow: #fef6e7;
+$pill-text-yellow: #b27300;
+$pill-bg-blue: #eef4ff;
+$pill-text-blue: #3563e9;
+
+.ranking-wrapper {
+  background-color: $bg-main;
+  min-height: 100vh;
+  padding: 2.5rem 3rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: $text-main;
+}
+
+// Cabecera superior
+.page-header {
+  margin-bottom: 2rem;
+  .header-titles {
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin: 0;
+      color: $text-main;
+    }
+    p {
+      color: $text-muted;
+      margin-top: 0.25rem;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+// Tarjeta de perfil (Scorecard)
+.user-card {
+  background: $card-bg;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1.25rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+  .profile-info {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+
+    .avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .info-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+
+      .name {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .email {
+        font-size: 0.82rem;
+        color: #64748b;
+      }
+      .meta-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.2rem;
+
+        .role-badge {
+          border: 1px solid #cbd5e1;
+          background: #f8fafc;
+          border-radius: 6px;
+          padding: 2px 7px;
+          font-size: 0.68rem;
+          font-weight: 700;
+          color: #334155;
+          letter-spacing: 0.03em;
+          line-height: 1.2;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        .company-name {
+          font-size: 0.82rem;
+          color: #64748b;
+        }
+      }
+    }
+  }
+
+  .profile-metrics {
+    display: flex;
+    flex-direction: column;
+    min-width: 380px;
+
+    .metrics-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      width: 100%;
+
+      .label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #64748b;
+      }
+
+      .progress-box {
+        width: 160px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+
+        .progress-bar {
+          height: 8px;
+          background: #e2e8f0;
+          border-radius: 999px;
+          overflow: hidden;
+
+          .progress-fill {
+            background: #f59e0b;
+            height: 100%;
+            border-radius: 999px;
+          }
+        }
+
+        .progress-labels {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.72rem;
+          color: #64748b;
+        }
+      }
+    }
+
+    .metrics-body {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 0.35rem;
+
+      .score-column {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2rem;
+
+        .primary-score {
+          font-size: 2.3rem;
+          font-weight: 900;
+          color: #0f172a;
+          line-height: 1;
+        }
+
+        .rank-info {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-size: 0.82rem;
+
+          .rank-text {
+            color: #334155;
+            font-weight: 700;
+
+            strong {
+              color: #0f172a;
+              font-weight: 700;
+            }
+          }
+
+          .top-green {
+            color: #10b981;
+            font-weight: 700;
+          }
+        }
+      }
+
+      .level-badge {
+        background-color: #fef3c7;
+        border: 1px solid #fde68a;
+        color: #78350f;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.45rem 1rem;
+        border-radius: 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        margin: 0;
+        align-self: center;
+      }
+    }
+  }
+}
+
+// Navegación de pestañas (Estilo botón/píldora independiente)
+.sub-nav {
+  margin-top: 1.75rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  gap: 0.5rem;
+
+  .nav-tab {
+    background: #fef9e7;
+    border: 1px solid #fde68a;
+    color: #78350f;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+  }
+}
+
+// Tabla contenedora
+.table-container {
+  background: $card-bg;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+
+  /* Toolbar de la tabla con cabecera sombreada */
+  .table-toolbar {
+    background: #f8fafc;
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .toolbar-title {
+      h3 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .toolbar-subtitle {
+        margin: 0.2rem 0 0;
+        font-size: 0.82rem;
+        color: #64748b;
+      }
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+      color: #64748b;
+
+      select {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0.4rem 0.85rem;
+        outline: none;
+        background: #ffffff;
+        font-size: 0.82rem;
+        color: #334155;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+      }
+    }
+  }
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+
+  thead {
+    background: #fafafa;
+
+    th {
+      padding: 0.85rem 1.5rem;
+      font-size: 0.72rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 600;
+      border-bottom: 1px solid #e2e8f0;
+    }
+  }
+
+  td {
+    padding: 1rem 1.5rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .font-medium {
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  .text-muted {
+    color: #64748b;
+  }
+
+  .col-action {
+    text-align: right;
+  }
+
+  .btn-arrow {
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    color: #94a3b8;
+    cursor: pointer;
+    line-height: 1;
+    &:hover {
+      color: #0f172a;
+    }
+  }
+
+  // Badges por nivel
+  .pill-badge {
+    padding: 0.3rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    display: inline-block;
+
+    &[data-level='Senior'] {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    &[data-level='Semi Senior'] {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    &[data-level='Junior'] {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+  }
+
+  // Fila divisoria: "TU POSICIÓN"
+  .separator-row td {
+    background: #f8fafc;
+    padding: 0.75rem 1.5rem;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+
+    .separator-content {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.04em;
+
+      .top-tag {
+        color: #0f172a;
+      }
+    }
+  }
+
+  // Fila destacada del usuario actual
+  tr.highlighted td {
+    background-color: #fef08a;
+    font-weight: 600;
+  }
+}
+
+// Paginador separado en el pie de la tabla
+.table-footer {
+  padding: 1.25rem 1.75rem;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: #64748b;
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    .page-btn {
+      min-width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #64748b;
+      font-size: 0.82rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &.active {
+        border-color: #cbd5e1;
+        background: #ffffff;
+        color: #0f172a;
+        font-weight: 700;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+
+      &:hover:not(.active) {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+      }
+    }
+  }
+}
