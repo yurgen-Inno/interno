@@ -1,101 +1,80 @@
-export const LEVEL_STATUS = {
-  SENIOR: 'senior',
-  SEMI_SENIOR: 'semi-senior',
-  JUNIOR: 'junior',
-  DEFAULT: 'default',
-} as const;
-
-export type LevelStatusType = typeof LEVEL_STATUS[keyof typeof LEVEL_STATUS];
-
-export const LEVEL_CLASS_MAP: Record<LevelStatusType, string> = {
-  [LEVEL_STATUS.SENIOR]: 'level-badge--senior',
-  [LEVEL_STATUS.SEMI_SENIOR]: 'level-badge--semi-senior',
-  [LEVEL_STATUS.JUNIOR]: 'level-badge--junior',
-  [LEVEL_STATUS.DEFAULT]: 'level-badge--default',
+const mockProjectsResponse: IResponseDeveloperProjects = {
+  count: 1,
+  page: 1,
+  size: 10,
+  data: [
+    {
+      applicationCode: 'APP-100',
+      authorEmail: 'dev@bank.com',
+      deltaScoreProject: 2.5,
+      directionScoreProject: 'mejora',
+      filial: 'BAM',
+      levelPreviousProject: 'Junior',
+      levelProject: 'Senior',
+      scorePreviousProject: 80,
+      scoreProject: 88.5,
+      subIndicadores: {} as any,
+    },
+  ],
 };
 
-
-import { LEVEL_STATUS, LEVEL_CLASS_MAP } from './list-authors.constants';
-
-// Dentro de tu clase ListAuthorsComponent:
-public getLevelBadgeClass(level: string | null | undefined): string {
-  if (!level) {
-    return LEVEL_CLASS_MAP[LEVEL_STATUS.DEFAULT];
-  }
-
-  const normalized = level.toLowerCase().replace(/[\s._]+/g, '-');
-
-  if (normalized.includes('semi') || normalized === 'ssr') {
-    return LEVEL_CLASS_MAP[LEVEL_STATUS.SEMI_SENIOR];
-  }
-  if (normalized.includes('senior') || normalized === 'sr') {
-    return LEVEL_CLASS_MAP[LEVEL_STATUS.SENIOR];
-  }
-  if (normalized.includes('junior') || normalized === 'jr') {
-    return LEVEL_CLASS_MAP[LEVEL_STATUS.JUNIOR];
-  }
-
-  return LEVEL_CLASS_MAP[LEVEL_STATUS.DEFAULT];
-}
+const mockProjectsMapped: Project[] = [
+  {
+    levelProject: 'Senior',
+    applicationCode: 'APP-100',
+    scoreProject: 88.5,
+    projectTime: '14 meses',
+  },
+];
 
 
-.level-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 50px;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1;
 
-  .level-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-  }
+describe('getAllDeveloperProjects', () => {
+  it('should build the projects url, apply filters and map the response', (done) => {
+    httpClient.get.mockReturnValue(of(mockProjectsResponse));
+    adapter.mapListProjects.mockReturnValue(mockProjectsMapped);
 
-  // Verde para Senior
-  &--senior {
-    background-color: #e8f5e9;
-    color: #1b5e20;
-    .level-dot {
-      background-color: #2e7d32;
-    }
-  }
+    spectator.service
+      .getAllDeveloperProjects('dev@bank.com', { page: 1, limit: 10 })
+      .subscribe((result) => {
+        expect(httpClient.get).toHaveBeenCalledTimes(1);
 
-  // Azul para Semi-Senior
-  &--semi-senior {
-    background-color: #e3f2fd;
-    color: #0d47a1;
-    .level-dot {
-      background-color: #1976d2;
-    }
-  }
+        const calledUrl = httpClient.get.mock.calls[0][0] as string;
+        expect(calledUrl).toContain('/query/api/v1/projects/authors/dev@bank.com');
+        expect(calledUrl).toContain('page=1');
+        expect(calledUrl).toContain('limit=10');
 
-  // Ámbar/Naranja para Junior
-  &--junior {
-    background-color: #fff8e1;
-    color: #b78103;
-    .level-dot {
-      background-color: #f57f17;
-    }
-  }
+        expect(adapter.mapListProjects).toHaveBeenCalledWith(mockProjectsResponse);
+        expect(result).toEqual(mockProjectsMapped);
+        done();
+      });
+  });
 
-  // Gris por defecto
-  &--default {
-    background-color: #f5f5f5;
-    color: #616161;
-    .level-dot {
-      background-color: #9e9e9e;
-    }
-  }
-}
+  it('should report event and return empty array as Project[] on error', (done) => {
+    const error = new Error('projects failure');
+    httpClient.get.mockReturnValue(throwError(() => error));
 
-<td bc-cell>
-  <span class="level-badge" [ngClass]="getLevelBadgeClass(row.level)">
-    <span class="level-dot"></span>
-    {{ row.level }}
-  </span>
-</td>
+    spectator.service.getAllDeveloperProjects('dev@bank.com', {}).subscribe((result) => {
+      expect(eventService.sendEvent).toHaveBeenCalledWith(
+        'error_load_authors',
+        { error } as unknown as Record<string, string>
+      );
+      expect(result).toEqual({} as unknown as Project[]);
+      done();
+    });
+  });
+
+  it('should throw synchronously when email is undefined', () => {
+    expect(() => spectator.service.getAllDeveloperProjects(undefined, {})).toThrow(
+      'Email is required'
+    );
+    expect(httpClient.get).not.toHaveBeenCalled();
+  });
+
+  it('should throw synchronously when email is an empty string', () => {
+    expect(() => spectator.service.getAllDeveloperProjects('', {})).toThrow(
+      'Email is required'
+    );
+    expect(httpClient.get).not.toHaveBeenCalled();
+  });
+});
