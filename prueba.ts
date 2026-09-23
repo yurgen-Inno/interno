@@ -1,176 +1,147 @@
-import { CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA, signal } from '@angular/core';
-import { fakeAsync, tick } from '@angular/core/testing';
-import { createComponentFactory, mockProvider, Spectator } from '@ngneat/spectator/jest';
-import { of } from 'rxjs';
+@if (resourceGetAllTabs.isLoading()) {
+  <ng-container [ngTemplateOutlet]="tableSkeleton" />
+} @else if (!resourceGetAllTabs.value()?.count) {
+  <section class="bc-mt-4 bc-row">
+    <div class="bc-col-12">
+      <app-error-state
+        [type]="'info'"
+        [title]="'Sin resultados'"
+        [message]="'No encontramos códigos para mostrar.'"
+        ($retry)="resourceGetAllTabs.reload()" />
+    </div>
+  </section>
+} @else {
+  <section class="bc-mt-4 bc-row">
+    @defer (on viewport; prefetch on idle) {
+      <div class="bc-col-12">
+        
+        <!-- Cabecera limpia sin tabla -->
+        <div class="ranking-header">
+          <h2 class="title">Ranking</h2>
+          <p class="subtitle">Compara tu posición con otros miembros del equipo</p>
+        </div>
 
-import { ListProjectsComponent } from './list-projects.component';
-import { SeniorityService } from './seniority.service';
-import { RoleService } from './role.service';
-import { GlobalStoreService } from './global-store.service';
-import { IResponseDeveloperProjects, Project } from './projects.interface';
+        <!-- Lista de tarjetas dinámica -->
+        <div class="card-list">
+          @for (row of $data(); track row.applicationCode || $index) {
+            <div class="card-item">
+              <!-- Información principal (Título y Subtítulo) -->
+              <div class="card-info">
+                <span class="card-title">{{ row.applicationCode }}</span>
+                <span class="card-subtitle">{{ row.filial }}</span>
+              </div>
 
-// 1. Mock adaptado a la estructura de IResponseDeveloperProjects
-const mockDeveloperProjects: IResponseDeveloperProjects = {
-  count: 2,
-  page: 0,
-  size: 15,
-  data: [
-    {
-      applicationCode: 'APP-1',
-      authorEmail: 'user@bancolombia.com.co',
-      deltaScoreProject: 0,
-      directionScoreProject: 'up',
-      filial: 'CO',
-      levelPreviousProject: 'Senior',
-      levelProject: 'Senior',
-      scorePreviousProject: 80,
-      scoreProject: 85,
-      subIndicadores: {} as any
-    },
-    {
-      applicationCode: 'APP-2',
-      authorEmail: 'user@bancolombia.com.co',
-      deltaScoreProject: 0,
-      directionScoreProject: 'up',
-      filial: 'CO',
-      levelPreviousProject: 'Mid',
-      levelProject: 'Senior',
-      scorePreviousProject: 70,
-      scoreProject: 75,
-      subIndicadores: {} as any
+              <!-- Badges y botón de acción -->
+              <div class="card-actions">
+                <!-- Badge de nivel/seniority -->
+                <span class="badge" [attr.data-tag]="getLevelTone(row.levelProject)">
+                  {{ row.levelProject }}
+                </span>
+
+                <!-- Botón de detalle que ya tenías -->
+                <nv-button
+                  typeButton="ghost"
+                  sizeButton="small"
+                  [routerLink]="['/seniority/detail']">
+                  <nv-icon fontIcon="icon-view"></nv-icon>
+                  Ver detalle
+                </nv-button>
+              </div>
+            </div>
+          }
+        </div>
+
+      </div>
+    } @placeholder {
+      <span>Se están consultando los datos disponibles</span>
     }
-  ]
-};
 
-// 2. Resultado esperado mapeado a Project[]
-const mockMappedProjects: Project[] = [
-  {
-    applicationCode: 'APP-1',
-    levelProject: 'Senior',
-    scoreProject: 85,
-    projectTime: '5 Meses'
-  },
-  {
-    applicationCode: 'APP-2',
-    levelProject: 'Senior',
-    scoreProject: 75,
-    projectTime: '5 Meses'
+    <!-- Paginador original -->
+    @if (resourceGetAllTabs.value()) {
+      <div class="bc-col-12 bc-mt-4" id="paginator-numeric-element">
+        <bc-paginator-v2
+          [prevText]="'Anterior'"
+          [nextText]="'Siguiente'"
+          [type]="'numeric'"
+          [id]="'paginator-numeric-sync'"
+          [totalItems]="resourceGetAllTabs.value().count"
+          [initialPage]="resourceGetAllTabs.value().page"
+          [itemsPerPage]="15"
+          [showPageSize]="false"
+          [showInfoItems]="true"
+          (onChangePage)="onChangePage($event)">
+        </bc-paginator-v2>
+      </div>
+    }
+  </section>
+}
+
+<!-- Template del Skeleton -->
+<ng-template #tableSkeleton>
+  ... (mantén aquí tu skeleton original tal como está)
+</ng-template>
+
+
+.ranking-header {
+  margin-bottom: 1rem;
+  padding: 0 0.25rem;
+
+  .title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
   }
-];
 
-describe('ListProjectsComponent', () => {
-  let spectator: Spectator<ListProjectsComponent>;
+  .subtitle {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+}
 
-  const currentUser = signal<{ email: string } | null>({
-    email: 'user@bancolombia.com.co'
-  });
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  width: 100%;
+}
 
-  // Spy apuntando al nombre real del método usado en el componente: getAllDeveloperProjects
-  const getAllDeveloperProjects = jest.fn().mockReturnValue(of(mockDeveloperProjects));
-  const selector = jest.fn().mockReturnValue(signal('dev@bank.com'));
+.card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.25rem;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  transition: box-shadow 0.15s ease, background-color 0.15s ease;
 
-  const createComponent = createComponentFactory({
-    component: ListProjectsComponent,
-    providers: [
-      mockProvider(SeniorityService, { getAllDeveloperProjects }),
-      mockProvider(RoleService, {
-        currentUser: currentUser as unknown as RoleService['currentUser']
-      }),
-      mockProvider(GlobalStoreService, { selector })
-    ],
-    overrideComponents: [
-      [
-        ListProjectsComponent,
-        {
-          remove: {
-            imports: [
-              // Módulos que se omiten en la vista aislada
-            ]
-          },
-          add: { imports: [] }
-        }
-      ]
-    ],
-    schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
-    detectChanges: false
-  });
+  &:hover {
+    background-color: #f9fafb;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
 
-  beforeEach(() => {
-    currentUser.set({ email: 'user@bancolombia.com.co' });
-    getAllDeveloperProjects.mockClear().mockReturnValue(of(mockDeveloperProjects));
-    selector.mockReturnValue(signal('dev@bank.com'));
-    spectator = createComponent();
-  });
+  .card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
 
-  // Tests estructurales / signals base
-  it('should have skeleton configuration initialized', () => {
-    expect(spectator.component.skeletonColumns).toHaveLength(3);
-    expect(spectator.component.skeletonRows).toHaveLength(6);
-    expect(spectator.component.$cellOptions().length).toBeGreaterThan(0);
-  });
+    .card-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
 
-  it('should read the developer email from the store', () => {
-    expect(spectator.component.$emailDeveloper()).toBe('dev@bank.com');
-  });
+    .card-subtitle {
+      font-size: 0.8125rem;
+      color: #6b7280;
+    }
+  }
 
-  describe('resourceGetAllTabs', () => {
-    it('should call the service with the current user email, developer email and filters', () => {
-      spectator.detectChanges();
-
-      expect(getAllDeveloperProjects).toHaveBeenCalledWith(
-        'user@bancolombia.com.co',
-        expect.objectContaining({
-          page: 0,
-          limit: 15,
-          emailDeveloper: 'dev@bank.com'
-        })
-      );
-    });
-
-    it('should expose the mapped results through $data', fakeAsync(() => {
-      spectator.detectChanges();
-      tick();
-      spectator.detectChanges();
-
-      expect(spectator.component.$data()).toEqual(mockMappedProjects);
-    }));
-
-    it('should not call the service when there is no email - edge case', () => {
-      currentUser.set(null);
-      getAllDeveloperProjects.mockClear();
-
-      const local = createComponent();
-
-      expect(local.component.resourceGetAllTabs.status()).toBeDefined();
-      expect(getAllDeveloperProjects).not.toHaveBeenCalled();
-    });
-
-    it('should return an empty array from $data when there are no results', () => {
-      getAllDeveloperProjects.mockReturnValue(of({ data: [] } as unknown as IResponseDeveloperProjects));
-
-      const local = createComponent();
-      local.detectChanges();
-
-      expect(local.component.$data()).toEqual([]);
-    });
-  });
-
-  describe('onChangePage', () => {
-    it('should update filters and re-query the service', () => {
-      spectator.detectChanges();
-      getAllDeveloperProjects.mockClear();
-
-      spectator.component.onChangePage({ itemsPerPage: 25, currentPage: 2 });
-      spectator.detectChanges();
-
-      expect(getAllDeveloperProjects).toHaveBeenCalledWith(
-        'user@bancolombia.com.co',
-        expect.objectContaining({
-          page: 2,
-          limit: 25,
-          emailDeveloper: 'dev@bank.com'
-        })
-      );
-    });
-  });
-});
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+}
