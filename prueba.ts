@@ -7,43 +7,10 @@ import { ListProjectsComponent } from './list-projects.component';
 import { SeniorityService } from './seniority.service';
 import { RoleService } from './role.service';
 import { GlobalStoreService } from './global-store.service';
-import { IResponseDeveloperProjects, Project } from './projects.interface';
+import { Project } from './projects.interface';
 
-// 1. Mock adaptado a la estructura de IResponseDeveloperProjects
-const mockDeveloperProjects: IResponseDeveloperProjects = {
-  count: 2,
-  page: 0,
-  size: 15,
-  data: [
-    {
-      applicationCode: 'APP-1',
-      authorEmail: 'user@bancolombia.com.co',
-      deltaScoreProject: 0,
-      directionScoreProject: 'up',
-      filial: 'CO',
-      levelPreviousProject: 'Senior',
-      levelProject: 'Senior',
-      scorePreviousProject: 80,
-      scoreProject: 85,
-      subIndicadores: {} as any
-    },
-    {
-      applicationCode: 'APP-2',
-      authorEmail: 'user@bancolombia.com.co',
-      deltaScoreProject: 0,
-      directionScoreProject: 'up',
-      filial: 'CO',
-      levelPreviousProject: 'Mid',
-      levelProject: 'Senior',
-      scorePreviousProject: 70,
-      scoreProject: 75,
-      subIndicadores: {} as any
-    }
-  ]
-};
-
-// 2. Resultado esperado mapeado a Project[]
-const mockMappedProjects: Project[] = [
+// El servicio devuelve un arreglo Project[], no un objeto
+const mockProjects: Project[] = [
   {
     applicationCode: 'APP-1',
     levelProject: 'Senior',
@@ -65,8 +32,8 @@ describe('ListProjectsComponent', () => {
     email: 'user@bancolombia.com.co'
   });
 
-  // Spy apuntando al nombre real del método usado en el componente: getAllDeveloperProjects
-  const getAllDeveloperProjects = jest.fn().mockReturnValue(of(mockDeveloperProjects));
+  // Mock devuelve un Observable de un Array (Project[])
+  const getAllDeveloperProjects = jest.fn().mockReturnValue(of(mockProjects));
   const selector = jest.fn().mockReturnValue(signal('dev@bank.com'));
 
   const createComponent = createComponentFactory({
@@ -84,7 +51,7 @@ describe('ListProjectsComponent', () => {
         {
           remove: {
             imports: [
-              // Módulos que se omiten en la vista aislada
+              // Módulos visuales que no se requieren renderizar
             ]
           },
           add: { imports: [] }
@@ -97,12 +64,11 @@ describe('ListProjectsComponent', () => {
 
   beforeEach(() => {
     currentUser.set({ email: 'user@bancolombia.com.co' });
-    getAllDeveloperProjects.mockClear().mockReturnValue(of(mockDeveloperProjects));
+    getAllDeveloperProjects.mockClear().mockReturnValue(of(mockProjects));
     selector.mockReturnValue(signal('dev@bank.com'));
     spectator = createComponent();
   });
 
-  // Tests estructurales / signals base
   it('should have skeleton configuration initialized', () => {
     expect(spectator.component.skeletonColumns).toHaveLength(3);
     expect(spectator.component.skeletonRows).toHaveLength(6);
@@ -132,7 +98,7 @@ describe('ListProjectsComponent', () => {
       tick();
       spectator.detectChanges();
 
-      expect(spectator.component.$data()).toEqual(mockMappedProjects);
+      expect(spectator.component.$data()).toEqual(mockProjects);
     }));
 
     it('should not call the service when there is no email - edge case', () => {
@@ -146,7 +112,8 @@ describe('ListProjectsComponent', () => {
     });
 
     it('should return an empty array from $data when there are no results', () => {
-      getAllDeveloperProjects.mockReturnValue(of({ data: [] } as unknown as IResponseDeveloperProjects));
+      // Debe retornar un arreglo vacío [], NUNCA un objeto {}
+      getAllDeveloperProjects.mockReturnValue(of([]));
 
       const local = createComponent();
       local.detectChanges();
