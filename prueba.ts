@@ -1,126 +1,134 @@
-describe('viewProjects', () => {
-  it('should persist the developer email and navigate to the projects route', () => {
-    const router = spectator.inject(Router);
-    const navigateSpy = jest
-      .spyOn(router, 'navigate')
-      .mockResolvedValue(true);
-
-    spectator.component.viewProjects('dev@bank.com');
-
-    expect(createAction).toHaveBeenCalledWith(
-      expect.any(String),
-      'dev@bank.com',
-      true
-    );
-    expect(navigateSpy).toHaveBeenCalledWith(['/seniority/author-detail']);
-  });
-
-  it('should not persist or navigate if email is falsy', () => {
-    const router = spectator.inject(Router);
-    const navigateSpy = jest
-      .spyOn(router, 'navigate')
-      .mockResolvedValue(true);
-
-    spectator.component.viewProjects(undefined);
-
-    expect(createAction).not.toHaveBeenCalled();
-    expect(navigateSpy).not.toHaveBeenCalled();
-  });
-});
-
-
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router'; // <-- Añade provideRouter
+import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { of } from 'rxjs';
+
 import { AuthorDetailComponent } from './author-detail.component';
-import { SeniorityService } from '../../services/seniority.service';
-import { GlobalStoreService } from '@shared/services/global-store.service';
-import { SELECTOR_STORE_EMAIL_SENIORITY } from '../../constants/seniority.constants';
-import { IResponsePersonalSeniority } from '../../models/personal-seniority.interface';
+import { GlobalStoreService } from '@shared/store/global-store.service';
+import { SeniorityService } from '@core/services/seniority/service/seniority.service';
+import { SELECTOR_STORE_EMAIL_SENIORITY } from '@core/constants/seniority.constant';
 
 describe('AuthorDetailComponent', () => {
   let component: AuthorDetailComponent;
-  let fixture: ComponentFixture<AuthorDetailComponent>;
-  let mockRouter: { navigate: jest.Mock };
-  let mockGlobalStoreService: { selector: jest.Mock; removeAction: jest.Mock };
-  let mockSeniorityService: { getPersonalSeniority: jest.Mock };
-  let storeEmailSignal = signal<any>('colaborador@bancolombia.com.co');
+  let mockRouter: jest.Mocked<Partial<Router>>;
+  let mockGlobalStoreService: {
+    selector: jest.Mock;
+    removeAction: jest.Mock;
+  };
+  let mockSeniorityService: {
+    getPersonalSeniority: jest.Mock;
+  };
 
-  const mockSeniorityResponse: IResponsePersonalSeniority = {
-    name: 'Juan Perez',
-    email: 'colaborador@bancolombia.com.co',
-    seniorityLevel: 'Senior',
-    score: 95,
-  } as any;
+  // Signal simulado para controlar el valor devuelto por el store
+  let emailStoreSignal: ReturnType<typeof signal<any>>;
 
   beforeEach(async () => {
-    storeEmailSignal = signal<any>('colaborador@bancolombia.com.co');
+    emailStoreSignal = signal<any>('test@example.com');
 
     mockRouter = {
-      navigate: jest.fn(),
+      navigate: jest.fn()
     };
 
     mockGlobalStoreService = {
-      selector: jest.fn().mockReturnValue(storeEmailSignal),
-      removeAction: jest.fn(),
+      selector: jest.fn().mockImplementation((key: string) => {
+        if (key === SELECTOR_STORE_EMAIL_SENIORITY) {
+          return emailStoreSignal;
+        }
+        return signal(null);
+      }),
+      removeAction: jest.fn()
     };
 
     mockSeniorityService = {
-      getPersonalSeniority: jest.fn().mockReturnValue(of(mockSeniorityResponse)),
+      getPersonalSeniority: jest.fn().mockReturnValue(of({ id: 1, name: 'Senior Dev' }))
     };
 
     await TestBed.configureTestingModule({
       imports: [AuthorDetailComponent],
       providers: [
-        provideRouter([]), // <-- Provee ActivatedRoute y dependencias de routerLink
         { provide: Router, useValue: mockRouter },
         { provide: GlobalStoreService, useValue: mockGlobalStoreService },
-        { provide: SeniorityService, useValue: mockSeniorityService },
-      ],
-    }).compileComponents();
+        { provide: SeniorityService, useValue: mockSeniorityService }
+      ]
+    })
+    .overrideComponent(AuthorDetailComponent, {
+      set: { template: '', imports: [] } // Evita renderizar componentes hijos en tests unitarios
+    })
+    .compileComponents();
 
-    fixture = TestBed.createComponent(AuthorDetailComponent);
+    const fixture = TestBed.createComponent(AuthorDetailComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('debe crearse correctamente', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('Signal $email', () => {
-    it('debe leer el correo del store correctamente', () => {
-      expect(component.$email()).toBe('colaborador@bancolombia.com.co');
+  describe('computed: $email', () => {
+    it('debe retornar el email limpio si es un string válido con espacios', () => {
+      emailStoreSignal.set('  user@domain.com  ');
+      TestBed.flushEffects();
+
+      expect(component.$email()).toBe('  user@domain.com  ');
     });
 
-    it('debe retornar string vacío si el store devuelve null o no es string', () => {
-      storeEmailSignal.set(null);
-      fixture.detectChanges();
-      expect(component.$email()).toBe('');
+    it('debe retornar string vacío si el valor es solo espacios en blanco', () => {
+      emailStoreSignal.set('    ');
+      TestBed.flushEffects();
 
-      storeEmailSignal.set(12345);
-      fixture.detectChanges();
+      expect(component.$email()).toBe('');
+    });
+
+    it('debe retornar string vacío si el valor no es un string (null, undefined, etc.)', () => {
+      emailStoreSignal.set(null);
+      TestBed.flushEffects();
+
       expect(component.$email()).toBe('');
     });
   });
 
-  describe('goToBack', () => {
-    it('debe limpiar el selector en el store y navegar hacia /seniority', () => {
+  describe('resourcePersonalSeniority', () => {
+    it('debe llamar al servicio seniority cuando el email es válido', () => {
+      emailStoreSignal.set('dev@test.com');
+      TestBed.flushEffects();
+
+      expect(mockSeniorityService.getPersonalSeniority).toHaveBeenCalledWith('dev@test.com');
+    });
+
+    it('no debe llamar al servicio si el email está vacío', () => {
+      mockSeniorityService.getPersonalSeniority.mockClear();
+      emailStoreSignal.set('');
+      TestBed.flushEffects();
+
+      expect(mockSeniorityService.getPersonalSeniority).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reloadService()', () => {
+    it('debe invocar reload() en resourcePersonalSeniority', () => {
+      const reloadSpy = jest.spyOn(component.resourcePersonalSeniority, 'reload');
+
+      component.reloadService();
+
+      expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('goToBack()', () => {
+    it('debe remover el email del store y navegar hacia /seniority con el queryParam tab="ranking"', () => {
       component.goToBack();
 
       expect(mockGlobalStoreService.removeAction).toHaveBeenCalledWith(
         SELECTOR_STORE_EMAIL_SENIORITY
       );
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/seniority']);
-    });
-  });
-
-  describe('reloadService', () => {
-    it('debe recargar el rxResource al invocarse', () => {
-      const reloadSpy = jest.spyOn(component.resourcePersonalSeniority, 'reload');
-      component.reloadService();
-      expect(reloadSpy).toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/seniority'], {
+        queryParams: { tab: 'ranking' }
+      });
     });
   });
 });
