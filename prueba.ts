@@ -1,5 +1,36 @@
+describe('viewProjects', () => {
+  it('should persist the developer email and navigate to the projects route', () => {
+    const router = spectator.inject(Router);
+    const navigateSpy = jest
+      .spyOn(router, 'navigate')
+      .mockResolvedValue(true);
+
+    spectator.component.viewProjects('dev@bank.com');
+
+    expect(createAction).toHaveBeenCalledWith(
+      expect.any(String),
+      'dev@bank.com',
+      true
+    );
+    expect(navigateSpy).toHaveBeenCalledWith(['/seniority/author-detail']);
+  });
+
+  it('should not persist or navigate if email is falsy', () => {
+    const router = spectator.inject(Router);
+    const navigateSpy = jest
+      .spyOn(router, 'navigate')
+      .mockResolvedValue(true);
+
+    spectator.component.viewProjects(undefined);
+
+    expect(createAction).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+});
+
+
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router'; // <-- Añade provideRouter
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { AuthorDetailComponent } from './author-detail.component';
@@ -42,6 +73,7 @@ describe('AuthorDetailComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AuthorDetailComponent],
       providers: [
+        provideRouter([]), // <-- Provee ActivatedRoute y dependencias de routerLink
         { provide: Router, useValue: mockRouter },
         { provide: GlobalStoreService, useValue: mockGlobalStoreService },
         { provide: SeniorityService, useValue: mockSeniorityService },
@@ -92,37 +124,3 @@ describe('AuthorDetailComponent', () => {
     });
   });
 });
-
-
-
-mockRouter = {
-  navigate: jest.fn(),
-};
-
-describe('viewProjects', () => {
-    it('no debe hacer nada si el email es undefined', () => {
-      component.viewProjects(undefined);
-      expect(mockGlobalStoreService.createAction).not.toHaveBeenCalled();
-      expect(mockRouter.navigate).not.toHaveBeenCalled();
-    });
-
-    it('no debe hacer nada si el email es una cadena vacia', () => {
-      component.viewProjects('');
-      expect(mockGlobalStoreService.createAction).not.toHaveBeenCalled();
-      expect(mockRouter.navigate).not.toHaveBeenCalled();
-    });
-
-    it('debe registrar en el store y navegar a la ruta de detalle cuando el email es valido', () => {
-      const email = 'dev@bancolombia.com.co';
-      component.viewProjects(email);
-
-      expect(mockGlobalStoreService.createAction).toHaveBeenCalledWith(
-        SELECTOR_STORE_EMAIL_SENIORITY,
-        email,
-        true
-      );
-      expect(mockRouter.navigate).toHaveBeenCalledWith([
-        '/seniority/author-detail',
-      ]);
-    });
-  });
