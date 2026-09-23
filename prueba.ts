@@ -1,80 +1,124 @@
-const mockProjectsResponse: IResponseDeveloperProjects = {
-  count: 1,
-  page: 1,
-  size: 10,
-  data: [
-    {
-      applicationCode: 'APP-100',
-      authorEmail: 'dev@bank.com',
-      deltaScoreProject: 2.5,
-      directionScoreProject: 'mejora',
-      filial: 'BAM',
-      levelPreviousProject: 'Junior',
-      levelProject: 'Senior',
-      scorePreviousProject: 80,
-      scoreProject: 88.5,
-      subIndicadores: {} as any,
-    },
-  ],
-};
+describe('mapListProjects', () => {
+  it('should map developer projects correctly when data is present', () => {
+    const mockResponse: IResponseDeveloperProjects = {
+      count: 1,
+      page: 1,
+      size: 10,
+      data: [
+        {
+          applicationCode: 'APP-100',
+          authorEmail: 'dev@bank.com',
+          deltaScoreProject: 1.5,
+          directionScoreProject: 'mejora',
+          filial: 'BAM',
+          levelPreviousProject: 'Junior',
+          levelProject: 'Senior',
+          scorePreviousProject: 80,
+          scoreProject: 92.5,
+          subIndicadores: {} as any,
+        },
+      ],
+    };
 
-const mockProjectsMapped: Project[] = [
-  {
-    levelProject: 'Senior',
-    applicationCode: 'APP-100',
-    scoreProject: 88.5,
-    projectTime: '14 meses',
-  },
-];
+    const result = spectator.service.mapListProjects(mockResponse);
 
-
-
-describe('getAllDeveloperProjects', () => {
-  it('should build the projects url, apply filters and map the response', (done) => {
-    httpClient.get.mockReturnValue(of(mockProjectsResponse));
-    adapter.mapListProjects.mockReturnValue(mockProjectsMapped);
-
-    spectator.service
-      .getAllDeveloperProjects('dev@bank.com', { page: 1, limit: 10 })
-      .subscribe((result) => {
-        expect(httpClient.get).toHaveBeenCalledTimes(1);
-
-        const calledUrl = httpClient.get.mock.calls[0][0] as string;
-        expect(calledUrl).toContain('/query/api/v1/projects/authors/dev@bank.com');
-        expect(calledUrl).toContain('page=1');
-        expect(calledUrl).toContain('limit=10');
-
-        expect(adapter.mapListProjects).toHaveBeenCalledWith(mockProjectsResponse);
-        expect(result).toEqual(mockProjectsMapped);
-        done();
-      });
+    expect(result).toEqual([
+      {
+        applicationCode: 'APP-100',
+        levelProject: 'Senior',
+        scoreProject: 92.5,
+        projectTime: '5 Meses',
+      },
+    ]);
   });
 
-  it('should report event and return empty array as Project[] on error', (done) => {
-    const error = new Error('projects failure');
-    httpClient.get.mockReturnValue(throwError(() => error));
+  it('should return an empty array when data is an empty array', () => {
+    const mockResponse: IResponseDeveloperProjects = {
+      count: 0,
+      page: 1,
+      size: 10,
+      data: [],
+    };
 
-    spectator.service.getAllDeveloperProjects('dev@bank.com', {}).subscribe((result) => {
-      expect(eventService.sendEvent).toHaveBeenCalledWith(
-        'error_load_authors',
-        { error } as unknown as Record<string, string>
-      );
-      expect(result).toEqual({} as unknown as Project[]);
-      done();
+    const result = spectator.service.mapListProjects(mockResponse);
+
+    expect(result).toEqual([]);
+  });
+
+  it('should return an empty array when data is missing or undefined (edge case)', () => {
+    const mockResponse = {
+      count: 0,
+      page: 1,
+      size: 10,
+      data: undefined,
+    } as unknown as IResponseDeveloperProjects;
+
+    const result = spectator.service.mapListProjects(mockResponse);
+
+    expect(result).toEqual([]);
+  });
+});
+
+
+
+
+
+
+
+describe('mapListDevelopers', () => {
+  it('should map developers array to IDevelopers object structure', () => {
+    const mockResponse: IResponseDevelopers = [
+      {
+        position: 1,
+        nombreCompleto: 'Pepito Perez',
+        level: 'Senior',
+        score: 95.5,
+        typeAuthor: 'Developer',
+        authorEmail: 'pepito@bank.com',
+      } as IDevelopersAuthor,
+    ];
+
+    const result = spectator.service.mapListDevelopers(mockResponse);
+
+    expect(result).toEqual({
+      count: 1,
+      page: DEFAULT_PAGINATION.PAGE,
+      size: 1,
+      results: [
+        {
+          position: 1,
+          nombreCompleto: 'Pepito Perez',
+          level: 'Senior',
+          score: 95.5,
+          rol: 'Developer',
+        },
+      ],
     });
   });
 
-  it('should throw synchronously when email is undefined', () => {
-    expect(() => spectator.service.getAllDeveloperProjects(undefined, {})).toThrow(
-      'Email is required'
-    );
-    expect(httpClient.get).not.toHaveBeenCalled();
+  it('should return empty results with count 0 when input array is empty', () => {
+    const mockResponse: IResponseDevelopers = [];
+
+    const result = spectator.service.mapListDevelopers(mockResponse);
+
+    expect(result).toEqual({
+      count: 0,
+      page: DEFAULT_PAGINATION.PAGE,
+      size: 0,
+      results: [],
+    });
   });
 
-  it('should throw synchronously when email is an empty string', () => {
-    expect(() => spectator.service.getAllDeveloperProjects('', {})).toThrow(
-      'Email is required'
-    );
-    expect(httpClient.get).not.toHaveBeenCalled();
+  it('should handle non-array or null input safely (edge case)', () => {
+    const mockResponse = null as unknown as IResponseDevelopers;
+
+    const result = spectator.service.mapListDevelopers(mockResponse);
+
+    expect(result).toEqual({
+      count: 0,
+      page: DEFAULT_PAGINATION.PAGE,
+      size: 0,
+      results: [],
+    });
   });
 });
