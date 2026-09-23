@@ -11,9 +11,9 @@ import { IResponsePersonalSeniority } from '../../models/personal-seniority.inte
 describe('AuthorDetailComponent', () => {
   let component: AuthorDetailComponent;
   let fixture: ComponentFixture<AuthorDetailComponent>;
-  let mockRouter: jasmine.SpyObj<Router>;
-  let mockGlobalStoreService: jasmine.SpyObj<GlobalStoreService>;
-  let mockSeniorityService: jasmine.SpyObj<SeniorityService>;
+  let mockRouter: { navigate: jest.Mock };
+  let mockGlobalStoreService: { selector: jest.Mock; removeAction: jest.Mock };
+  let mockSeniorityService: { getPersonalSeniority: jest.Mock };
   let storeEmailSignal = signal<any>('colaborador@bancolombia.com.co');
 
   const mockSeniorityResponse: IResponsePersonalSeniority = {
@@ -25,19 +25,19 @@ describe('AuthorDetailComponent', () => {
 
   beforeEach(async () => {
     storeEmailSignal = signal<any>('colaborador@bancolombia.com.co');
-    mockRouter = jasmine.createSpyObj('Router', ['navigate']);
-    mockGlobalStoreService = jasmine.createSpyObj('GlobalStoreService', [
-      'selector',
-      'removeAction',
-    ]);
-    mockSeniorityService = jasmine.createSpyObj('SeniorityService', [
-      'getPersonalSeniority',
-    ]);
 
-    mockGlobalStoreService.selector.and.returnValue(storeEmailSignal);
-    mockSeniorityService.getPersonalSeniority.and.returnValue(
-      of(mockSeniorityResponse)
-    );
+    mockRouter = {
+      navigate: jest.fn(),
+    };
+
+    mockGlobalStoreService = {
+      selector: jest.fn().mockReturnValue(storeEmailSignal),
+      removeAction: jest.fn(),
+    };
+
+    mockSeniorityService = {
+      getPersonalSeniority: jest.fn().mockReturnValue(of(mockSeniorityResponse)),
+    };
 
     await TestBed.configureTestingModule({
       imports: [AuthorDetailComponent],
@@ -86,9 +86,43 @@ describe('AuthorDetailComponent', () => {
 
   describe('reloadService', () => {
     it('debe recargar el rxResource al invocarse', () => {
-      spyOn(component.resourcePersonalSeniority, 'reload');
+      const reloadSpy = jest.spyOn(component.resourcePersonalSeniority, 'reload');
       component.reloadService();
-      expect(component.resourcePersonalSeniority.reload).toHaveBeenCalled();
+      expect(reloadSpy).toHaveBeenCalled();
     });
   });
 });
+
+
+
+mockRouter = {
+  navigate: jest.fn(),
+};
+
+describe('viewProjects', () => {
+    it('no debe hacer nada si el email es undefined', () => {
+      component.viewProjects(undefined);
+      expect(mockGlobalStoreService.createAction).not.toHaveBeenCalled();
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
+    it('no debe hacer nada si el email es una cadena vacia', () => {
+      component.viewProjects('');
+      expect(mockGlobalStoreService.createAction).not.toHaveBeenCalled();
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
+    it('debe registrar en el store y navegar a la ruta de detalle cuando el email es valido', () => {
+      const email = 'dev@bancolombia.com.co';
+      component.viewProjects(email);
+
+      expect(mockGlobalStoreService.createAction).toHaveBeenCalledWith(
+        SELECTOR_STORE_EMAIL_SENIORITY,
+        email,
+        true
+      );
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/seniority/author-detail',
+      ]);
+    });
+  });
