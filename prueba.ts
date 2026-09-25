@@ -1,69 +1,43 @@
-public resourceGetAllAuthors = rxResource({
-  params: () => {
-    return {
-      email: this.$email(),
-      ...this.$filters()
-    };
-  },
-  stream: ({ params }) => {
-    const { email, ...filters } = params;
-    return this._seniorityServices.getLeaderSubordinates(email, filters);
-  },
-  defaultValue: {} as unknown as IDevelopers
-});
+describe('showAll and toggleShowAll', () => {
+    it('should have showAll initialized to false', () => {
+      expect(spectator.component.showAll()).toBe(false);
+    });
 
+    it('should toggle showAll state when toggleShowAll is called', () => {
+      spectator.component.toggleShowAll();
+      expect(spectator.component.showAll()).toBe(true);
 
+      spectator.component.toggleShowAll();
+      expect(spectator.component.showAll()).toBe(false);
+    });
+  });
 
-public getLeaderSubordinates(
-  email: string | undefined,
-  filters?: Record<string, TGenericType>
-): Observable<IDevelopers> {
-  if (!email) {
-    throw new Error('Email is required');
-  }
+  describe('topContributors and extraContributors', () => {
+    it('should split contributors into topContributors and extraContributors correctly', fakeAsync(() => {
+      const multipleContributors: ITopContributors[] = Array.from({ length: 8 }, (_, i) => ({
+        email: `dev${i + 1}@bank.com`,
+        fullName: `Dev ${i + 1}`,
+        totalCommits: 10 + i,
+      })) as ITopContributors[];
 
-  // Ajusta la ruta base según tu backend (ej. /query/api/v1/leaders/)
-  const url = buildApiUrl(
-    `${environment.apiBaseUrl}query/api/v1/leaders/${email}`,
-    filters
-  );
+      getTopContributors.mockReturnValue(of(multipleContributors));
 
-  return this._http.get<ILeader>(url).pipe(
-    map(values => this._adapterSeniority.mapListLeaderSubordinates(values)),
-    catchError(error => {
-      this._eventsService
-        .sendEvent('error_load_subordinates', { error })
-        .subscribe();
-      return of(EMPTY_DEVELOPERS_STATE);
-    })
-  );
-}
+      const local = createComponent();
+      local.detectChanges();
+      tick();
+      local.detectChanges();
 
+      expect(local.component.topContributors()).toEqual(multipleContributors.slice(0, 5));
 
+      expect(local.component.extraContributors()).toEqual(multipleContributors.slice(5));
+    }));
 
-public mapListLeaderSubordinates(response: ILeader | ILeader[]): IDevelopers {
-  // Aseguramos obtener la lista de subordinados sea objeto único o arreglo
-  let rawSubordinados: Subordinado[] = [];
+    it('should have empty extraContributors when total contributors are less than or equal to TOP_CONTRIBUTORS', fakeAsync(() => {
+      spectator.detectChanges();
+      tick();
+      spectator.detectChanges();
 
-  if (Array.isArray(response)) {
-    rawSubordinados = response.flatMap(leader => leader?.subordinados ?? []);
-  } else if (response && Array.isArray(response.subordinados)) {
-    rawSubordinados = response.subordinados;
-  }
-
-  const mappedResults: DeveloperResultItem[] = rawSubordinados.map(item => ({
-    position: item.ranking,
-    nombreCompleto: item.authorName,
-    level: item.level,
-    score: item.ranking, // O el valor numérico correspondiente si aplica
-    rol: item.typeAuthor,
-    authorEmail: item.email
-  }));
-
-  return {
-    count: mappedResults.length,
-    page: 1,
-    size: mappedResults.length,
-    results: mappedResults
-  };
-}
+      expect(spectator.component.topContributors()).toEqual(mockContributors);
+      expect(spectator.component.extraContributors()).toEqual([]);
+    }));
+  });
