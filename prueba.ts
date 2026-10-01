@@ -12,7 +12,7 @@ import { IDashboardOverview, ScoreStatus } from '../../../../core/models/tech-da
 export class DashboardsCardsComponent {
   public cards = input<IDashboardOverview['kpiCards']>([]);
 
-  private mapStatusColor(status: ScoreStatus): BcCardContentConfig['status']['color'] {
+  private mapStatusColor(status: ScoreStatus): string {
     switch (status) {
       case 'EXCELLENT':
         return 'status-success-3';
@@ -50,11 +50,11 @@ export class DashboardsCardsComponent {
           ariaLabel: item.title,
         },
         status: {
-          color: this.mapStatusColor(item.status),
           text: item.statusLabel,
           type: 'only',
           customIcon: '',
           border: 'center',
+          ...( { color: this.mapStatusColor(item.status) } as any ),
         },
         title: {
           value: displayTitle,
@@ -69,41 +69,7 @@ export class DashboardsCardsComponent {
           typographyClass: '',
         },
         additionalInfo: [],
-      } as BcCardContentConfig;
+      } as unknown as BcCardContentConfig;
     });
   });
-}
-
-
-
-
-
-<div class="cards-grid">
-  @for (cardConfig of cardsConfigurations(); track cardConfig.idCard) {
-    <div class="cards-grid__item">
-      <cb-card-content [dataConfiguration]="cardConfig" />
-    </div>
-  }
-</div>
-
-
-
-
-
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  width: 100%;
-  margin-top: 16px;
-  margin-bottom: 24px;
-
-  &__item {
-    display: flex;
-    width: 100%;
-
-    cb-card-content {
-      width: 100%;
-    }
-  }
 }
