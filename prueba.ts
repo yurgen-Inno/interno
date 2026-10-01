@@ -1,31 +1,238 @@
-Actúa como frontend developer senior en Angular.Necesito actualizar el consumo de reportes en este módulo siguiendo estrictamente nuestra arquitectura.
+{
+  "header": {
+    "title": "Score Organizacional",
+      "cutoffDate": "2026-09-30",
+        "lastUpdated": "Actualizado",
+          "subtitle": "Lectura ejecutiva de bienestar tecnológico por..."
+  },
+  "summaryBanner": {
+    "text": "El score general es 57 %. Obsolescencia lidera con 81 % y requiere sostenerse; seguridad registra 46 % y concentra la principal oportunidad de mejora."
+  },
+  "scoreThresholds": [
+    { "level": "Excelente", "range": "80-100 %", "statusKey": "EXCELLENT" },
+    { "level": "Bueno", "range": "60-80 %", "statusKey": "GOOD" },
+    { "level": "Regular", "range": "40-60 %", "statusKey": "REGULAR" },
+    { "level": "Malo", "range": "20-40 %", "statusKey": "BAD" },
+    { "level": "Crítico", "range": "0-20 %", "statusKey": "CRITICAL" }
+  ],
+    "kpiCards": [
+      {
+        "id": "general",
+        "title": "General",
+        "score": 57,
+        "scoreDisplay": "57 %",
+        "description": "Promedio general...",
+        "rangeLabel": "Regular · 40-60 %",
+        "status": "REGULAR",
+        "statusLabel": "Regular",
+        "hasData": true
+      },
+      {
+        "id": "tecnologia",
+        "title": "Tecnología",
+        "score": 62,
+        "scoreDisplay": "62 %",
+        "description": "Promedio área tecnología",
+        "rangeLabel": "Bueno · 60-80 %",
+        "status": "GOOD",
+        "statusLabel": "Bueno",
+        "hasData": true
+      },
+      {
+        "id": "negocios",
+        "title": "Negocios",
+        "score": 56,
+        "scoreDisplay": "56 %",
+        "description": "Promedio de las EVC correspondientes",
+        "rangeLabel": "Regular · 40-60 %",
+        "status": "REGULAR",
+        "statusLabel": "Regular",
+        "hasData": true
+      },
+      {
+        "id": "excelencia",
+        "title": "Excelencia",
+        "score": 79,
+        "scoreDisplay": "79 %",
+        "description": "Promedio excelencia...",
+        "rangeLabel": "Bueno",
+        "status": "GOOD",
+        "statusLabel": "Bueno",
+        "hasData": true
+      },
+      {
+        "id": "obsolescencia",
+        "title": "Obsolescencia",
+        "score": 81,
+        "scoreDisplay": "81 %",
+        "description": "Promedio obsolescencia...",
+        "rangeLabel": "Excelente",
+        "status": "EXCELLENT",
+        "statusLabel": "Excelente",
+        "hasData": true
+      },
+      {
+        "id": "adherencia",
+        "title": "Adherencia",
+        "score": 79,
+        "scoreDisplay": "79 %",
+        "description": "Promedio adherencia...",
+        "rangeLabel": "Bueno",
+        "status": "GOOD",
+        "statusLabel": "Bueno",
+        "hasData": true
+      },
+      {
+        "id": "velocidad",
+        "title": "Velocidad",
+        "score": 47,
+        "scoreDisplay": "47 %",
+        "description": "Promedio velocidad...",
+        "rangeLabel": "Regular",
+        "status": "REGULAR",
+        "statusLabel": "Regular",
+        "hasData": true
+      },
+      {
+        "id": "seguridad",
+        "title": "Seguridad",
+        "score": 46,
+        "scoreDisplay": "46 %",
+        "description": "Promedio seguridad...",
+        "rangeLabel": "Regular",
+        "status": "REGULAR",
+        "statusLabel": "Regular",
+        "hasData": true
+      },
+      {
+        "id": "estabilidad",
+        "title": "Estabilidad",
+        "score": null,
+        "scoreDisplay": "Sin dato",
+        "description": "Medición aún no disponible",
+        "rangeLabel": "En desarrollo",
+        "status": "IN_DEVELOPMENT",
+        "statusLabel": "En desarrollo",
+        "hasData": false
+      }
+    ],
+      "pillarComparison": {
+    "cutoffDate": "2026-09-30",
+      "items": [
+        { "id": "excelencia", "name": "Excelencia", "percentage": 79, "status": "GOOD", "statusLabel": "Bueno" },
+        { "id": "obsolescencia", "name": "Obsolescencia", "percentage": 81, "status": "EXCELLENT", "statusLabel": "Excelente" },
+        { "id": "adherencia", "name": "Adherencia", "percentage": 79, "status": "GOOD", "statusLabel": "Bueno" },
+        { "id": "velocidad", "name": "Velocidad", "percentage": 47, "status": "REGULAR", "statusLabel": "Regular" },
+        { "id": "seguridad", "name": "Seguridad", "percentage": 46, "status": "REGULAR", "statusLabel": "Regular" },
+        { "id": "estabilidad", "name": "Estabilidad", "percentage": null, "status": "IN_DEVELOPMENT", "statusLabel": "En desarrollo" }
+      ]
+  }
+}
 
-Contexto del cambio:
-1. El listado de tipos de reporte cambió: antes retornaba["proveedores", "smart"], ahora retorna["proveedores:mes", "smart:rango"].
-2. Actualmente ya existe la implementación funcional para "mes" que consume:
-GET / proveedores ? region = { region } & date={ YYYY - MM }
-3. Debemos integrar el nuevo endpoint para "smart:rango":
-GET / smart ? region = { region } & startDate={ YYYY - MM - DD }& endDate={ YYYY - MM - DD }
 
-Manejo del Selector de Fechas(UI y Lógica):
-- Revisa cómo está construido actualmente el selector de fechas para "mes".
-- Si el selector solo permite elegir mes(YYYY - MM): mediante el Mapper, calcula automáticamente el rango para "smart"(startDate = primer día del mes YYYY - MM-01, endDate = último día del mes YYYY - MM - DD).
-- Si el componente debe permitir o ya permite seleccionar rango(startDate y endDate): adapta el selector / formulario en el HTML para que cuando el usuario elija "smart:rango" pueda ingresar / visualizar ambas fechas, o alternar entre selector de mes simple y datepicker de rango según el reporte activo.
-- Asegúrate de que el formato enviado en los query params sea estrictamente YYYY - MM para mes y YYYY - MM - DD para rango.
 
-Reglas obligatorias de arquitectura y calidad de código:
-- CERO MAGIC STRINGS Y CERO MAGIC NUMBERS:
-  * Prohibido usar cadenas o números literales quemados en código(componente, mapper, servicio o HTML).
-  * Todo tipo de reporte('proveedores:mes', 'smart:rango'), nombres de query params('region', 'date', 'startDate', 'endDate'), rutas base de endpoints('/proveedores', '/smart'), separadores(ej: ':'), y formatos o valores numéricos por defecto deben residir en el archivo de Constantes usando `as const` o`enum`.
-  * En la plantilla HTML y en los métodos TypeScript, hacer referencia exclusivamente a las constantes importadas o expuestas.
-- Signals: Reactividad 100 % con Signals de Angular.
-- Nomenclatura obligatoria: TODOS los Signals DEBEN empezar con "$"(ej: public readonly $selectedReport = signal(REPORT_TYPES.PROVEEDORES_MES); public readonly $startDate = signal(''); public readonly$isLoading = signal(false);).
-- Plantilla HTML: Invocar los signals como funciones con prefijo "$"(ej: $isLoading(), $selectedReport()).Usar sintaxis moderna(@if, @for).Sin pipes | async.
-- Separación de capas:
-  * Constantes: Declarar los identificadores, nombres de parámetros, rutas y formatos centralizados.
-  * Modelos: Definir interfaces para los filtros de búsqueda(ProveedoresMesFilter, SmartRangoFilter) y las respuestas DTO.
-  * Mapper: Crear funciones puras para parsear el tipo de reporte y transformar / formatear las fechas a los formatos requeridos por la API.
-  * Servicio: Exponer los métodos getProveedores(filter) y getSmart(filter) armando HttpParams a partir de las constantes.
-  * Componente: Orquestar la llamada reactiva al cambiar de opción o de fechas, actualizando los signals correspondientes.
 
-Por favor, inspecciona los archivos existentes del módulo, toma como referencia lo que ya está hecho para "mes" y replica el patrón para "smart:rango".
+
+
+
+
+
+
+
+
+
+
+
+
+
+{
+  "pagination": {
+    "currentPage": 1,
+      "pageSize": 10,
+        "totalItems": 50,
+          "totalPages": 5
+  },
+  "columns": [
+    { "key": "evc", "label": "EVC" },
+    { "key": "score", "label": "Score Tech Mindfulness" },
+    { "key": "vicepresidencia", "label": "Vicepresidencia" },
+    { "key": "date", "label": "Fecha" },
+    { "key": "column5", "label": "Column 5" },
+    { "key": "column6", "label": "Column 6" },
+    { "key": "column7", "label": "Column 7" },
+    { "key": "column8", "label": "Column 8" },
+    { "key": "column9", "label": "Column 9" }
+  ],
+    "rows": [
+      {
+        "id": "row-01",
+        "evc": "EVC Alpha 01",
+        "score": 94,
+        "scoreDisplay": "94 %",
+        "vicepresidencia": "Tecnología / Negocios",
+        "date": "2026-09-30",
+        "dateDisplay": "sep. 30, 2026",
+        "column5": "Cell",
+        "column6": "Cell",
+        "column7": "Cell",
+        "column8": "Cell",
+        "column9": "Cell"
+      },
+      {
+        "id": "row-02",
+        "evc": "EVC Beta 02",
+        "score": 93,
+        "scoreDisplay": "93 %",
+        "vicepresidencia": "Tecnología",
+        "date": "2026-09-30",
+        "dateDisplay": "sep. 30, 2026",
+        "column5": "Cell",
+        "column6": "Cell",
+        "column7": "Cell",
+        "column8": "Cell",
+        "column9": "Cell"
+      },
+      {
+        "id": "row-03",
+        "evc": "EVC Gamma 03",
+        "score": 91,
+        "scoreDisplay": "91 %",
+        "vicepresidencia": "Negocios",
+        "date": "2026-09-30",
+        "dateDisplay": "sep. 30, 2026",
+        "column5": "Cell",
+        "column6": "Cell",
+        "column7": "Cell",
+        "column8": "Cell",
+        "column9": "Cell"
+      },
+      {
+        "id": "row-04",
+        "evc": "EVC Delta 04",
+        "score": 90,
+        "scoreDisplay": "90 %",
+        "vicepresidencia": "Tecnología",
+        "date": "2026-09-30",
+        "dateDisplay": "sep. 30, 2026",
+        "column5": "Cell",
+        "column6": "Cell",
+        "column7": "Cell",
+        "column8": "Cell",
+        "column9": "Cell"
+      },
+      {
+        "id": "row-05",
+        "evc": "EVC Epsilon 05",
+        "score": 82,
+        "scoreDisplay": "82 %",
+        "vicepresidencia": "Tecnología",
+        "date": "2026-09-30",
+        "dateDisplay": "sep. 30, 2026",
+        "column5": "Cell",
+        "column6": "Cell",
+        "column7": "Cell",
+        "column8": "Cell",
+        "column9": "Cell"
+      }
+    ]
+}
