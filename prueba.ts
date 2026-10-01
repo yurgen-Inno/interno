@@ -1,16 +1,16 @@
 import { Component, computed, input } from '@angular/core';
-import { CbCardContent, BcCardContentConfig } from '@your-design-system/core';
+import { CbCardPrimary } from '@your-design-system/core';
 import { IDashboardOverview, ScoreStatus } from '../../../../core/models/tech-dashboards.model';
 
 @Component({
   selector: 'app-dashboards-cards',
   standalone: true,
-  imports: [CbCardContent],
+  imports: [CbCardPrimary],
   templateUrl: './dashboards-cards.component.html',
   styleUrl: './dashboards-cards.component.scss',
 })
 export class DashboardsCardsComponent {
-  public cards = input<IDashboardOverview['kpiCards']>([]);
+  public cards = input<IDashboardOverview['kpiCards'] | undefined>([]);
 
   private mapStatusColor(status: ScoreStatus): string {
     switch (status) {
@@ -29,7 +29,7 @@ export class DashboardsCardsComponent {
     }
   }
 
-  public cardsConfigurations = computed<BcCardContentConfig[]>(() => {
+  public cardsConfigurations = computed(() => {
     const list = this.cards() ?? [];
 
     return list.map((item, index) => {
@@ -38,38 +38,74 @@ export class DashboardsCardsComponent {
         : item.title;
 
       return {
-        idCard: `kpi-card-${item.id || index}`,
-        isActionable: true,
-        widthCardContent: 360,
-        cardPosition: 'horizontal',
-        cardSize: 'small',
-        cardType: 'card-icon',
-        iconFloat: 'icon-chevron-right',
-        configurationIcon: {
-          icon: 'icon-circle',
-          ariaLabel: item.title,
+        id: `kpi-card-${item.id || index}`,
+        variant: 'new-product',
+        typeIcon: 'icon',
+        icon: 'icon-circle',
+        classColorBorder: 'status-info-1',
+        borderColor: true,
+        infoAccount: {
+          title: displayTitle,
+          subtitle: item.description,
+          titleTypographyClass: '',
+          subtitleTypographyClass: '',
+          textOneTypographyClass: '',
+          textTwoTypographyClass: '',
+          textThreeTypographyClass: '',
         },
-        status: {
-          text: item.statusLabel,
+        dataOne: {
+          titleData: item.rangeLabel,
+          data: '',
+          textAlign: 'left',
+          iconFranchise: '',
+          titleDataTypographyClass: '',
+          dataTypographyClass: '',
+        },
+        componentStatus: {
           type: 'only',
-          customIcon: '',
+          color: this.mapStatusColor(item.status),
           border: 'center',
-          ...( { color: this.mapStatusColor(item.status) } as any ),
+          text: item.statusLabel,
         },
-        title: {
-          value: displayTitle,
-          typographyClass: '',
-        },
-        subtitle: {
-          value: item.description,
-          typographyClass: '',
-        },
-        textDescription: {
-          value: item.rangeLabel,
-          typographyClass: '',
-        },
-        additionalInfo: [],
-      } as unknown as BcCardContentConfig;
+      };
     });
   });
+}
+
+
+
+
+
+
+
+
+
+<div class="cards-grid">
+  @for (cardConfig of cardsConfigurations(); track cardConfig.id) {
+    <div class="cards-grid__item">
+      <cb-card-primary [config]="cardConfig" />
+    </div>
+  }
+</div>
+
+
+
+
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  margin-top: 16px;
+  margin-bottom: 24px;
+
+  &__item {
+    display: flex;
+    width: 100%;
+
+    cb-card-primary {
+      width: 100%;
+    }
+  }
 }
