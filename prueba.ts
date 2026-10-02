@@ -1,51 +1,69 @@
+// marketplace-reward.adapter.ts
+
+export class MarketplaceRewardAdapter {
+  // ... resto del adapter igual ...
+
+  // Modifica solo este método privado:
+  private static resolveIconName(iconName?: string): string {
+    if (!iconName) {
+      return REWARD_CONFIG.DEFAULT_ICON; // 'icon-gift'
+    }
+    // Devolvemos el nombre tal cual viene en el JSON ('aws', 'azure', 'github', etc.)
+    return iconName.trim().toLowerCase();
+  }
+}
+
+
+
+// card-marketplace.component.ts
 import { Component, computed, inject, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IContent } from './content.interface'; //[cite: 7]
+import { IContent } from './content.interface';[cite: 7]
 import { MarketplaceIssuesService } from './marketplace-issues.service';
 import { MarketplaceRewardAdapter } from './marketplace-reward.adapter';
 
-// Mapeo oficial de slugs de marcas para Simple Icons
 const BRAND_SLUGS: Record<string, string> = {
-  aws: 'amazonaws',
-  github: 'github', //
-  azure: 'microsoftazure',
-  udemy: 'udemy', //[cite: 1]
+  'aws': 'amazonaws',
+  'amazon': 'amazonaws',
+  'github': 'github',[cite: 1, 5]
+  'azure': 'microsoftazure',
+  'microsoft-azure': 'microsoftazure',
+  'udemy': 'udemy',[cite: 1]
 };
 
 @Component({
   selector: 'app-card-marketplace',
   standalone: true,
-  imports: [CommonModule], // Tu configuración original intacta[cite: 7]
+  imports: [CommonModule],[cite: 7]
   templateUrl: './card-marketplace.component.html',
   styleUrls: ['./card-marketplace.component.scss'],
 })
 export class CardMarketplaceComponent {
   private readonly _issuesService = inject(MarketplaceIssuesService);
 
-  public $content = input.required<IContent>(); //[cite: 7]
+  public $content = input.required<IContent>();[cite: 7]
 
-  // Adapter base
   public readonly $reward = computed(() =>
     MarketplaceRewardAdapter.toViewModel(
-      this.$content()?.labels,
+      this.$content()?.labels,[cite: 10]
       this._issuesService.$rewardsMap()
     )
   );
 
-  // Determina si es una marca que debe ir por la web
+  // Es web solo si NO empieza por 'icon-' y NO es de los internos (ej: puntos-colombia)
   public readonly $isWebIcon = computed(() => {
-    const icon = this.$reward().icon?.toLowerCase();
-    // Si empieza por 'icon-' (ej: icon-hand-handshake, icon-gift, icon-puntos-colombia) es de tu librería
-    if (!icon || icon.startsWith('icon-') || icon === 'puntos-colombia') {
-      return false; //
+    const icon = this.$reward().icon?.toLowerCase().trim();
+    if (!icon) return false;
+    if (icon.startsWith('icon-') || icon === 'puntos-colombia') {
+      return false;[cite: 1, 2]
     }
     return true;
   });
 
-  // URL del CDN de Simple Icons
+  // URL al CDN oficial
   public readonly $webIconUrl = computed(() => {
-    const rawIcon = this.$reward().icon?.toLowerCase().trim();
-    const slug = BRAND_SLUGS[rawIcon] ?? rawIcon;
+    const raw = this.$reward().icon?.toLowerCase().trim();
+    const slug = BRAND_SLUGS[raw] ?? raw;
     return `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${slug}.svg`;
   });
 }
@@ -54,10 +72,10 @@ export class CardMarketplaceComponent {
 
 <section class="bc-p-2 bc-flex bc-gap-2 bc-align-items-center">
   @if ($reward().isVoluntary) {
-    <!-- Caso voluntario: tu nv-icon original intacto -->
+    <!-- Recompensa voluntaria -->
     <nv-icon class="icon-hand-handshake" size="md"></nv-icon> <!--[cite: 2] -->
   } @else if ($isWebIcon()) {
-    <!-- Caso iconos de la web (AWS, Azure, Github, Udemy) -->
+    <!-- Icono Web (AWS, Azure, Github, Udemy) -->
     <img 
       [src]="$webIconUrl()" 
       [alt]="$reward().label"
@@ -65,8 +83,11 @@ export class CardMarketplaceComponent {
       loading="lazy"
     />
   } @else {
-    <!-- Caso icono de tu librería interna (puntos-colombia, fallback gift) -->
-    <nv-icon [class]="$reward().icon" size="sm"></nv-icon> <!--[cite: 1, 2] -->
+    <!-- Icono Interno (puntos-colombia o fallback default) -->
+    <nv-icon 
+      [class]="$reward().icon.startsWith('icon-') ? $reward().icon : 'icon-' + $reward().icon" 
+      size="sm">
+    </nv-icon> <!--[cite: 1, 2] -->
   }
 
   <div class="nv-display-flex nv-flex-direction-column">
@@ -81,16 +102,3 @@ export class CardMarketplaceComponent {
     }
   </div>
 </section>
-
-
-
-
-.reward-cdn-icon {
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
-  min-height: 18px;
-  display: inline-block;
-  object-fit: contain;
-  vertical-align: middle;
-}
