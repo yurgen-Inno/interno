@@ -1,49 +1,39 @@
-// card-marketplace.constants.ts
+// marketplace-rewards.constant.ts
+
 export const REWARD_CONFIG = {
+  PREFIX: 'rw:',
   DEFAULT_ICON: 'icon-gift',
   VOLUNTARY_ICON: 'icon-hand-handshake',
   VOLUNTARY_LABEL: 'Sin recompensa',
+  NOT_DEFINED: 'no definido',
   ICON_PREFIX: 'icon-',
+  DELIMITER: '-',
+  JOIN_SEPARATOR: ' ',
   EMPTY_SIZE: 0,
 } as const;
 
 
+// marketplace-reward.adapter.ts
+import { IRewards } from './rewards.interface'; // Tu interfaz existente (Captura 5)
+import { REWARD_CONFIG } from './marketplace-rewards.constant';
 
+export interface RewardViewModel {
+  icon: string;
+  label: string;
+  isVoluntary: boolean;
+}
 
-// card-marketplace.component.ts
-import { Component, computed, inject, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { IContent } from './content.interface';
-import { REWARD_CONFIG } from './card-marketplace.constants';
-import { 
-  extractRewardFromLabels, 
-  getRewardMatchKey, 
-  formatRewardLabel 
-} from './marketplace-reward.utils';
-import { MarketplaceIssuesService } from './marketplace-issues.service';
-import { IRewards } from './rewards.interface';
+export class MarketplaceRewardAdapter {
+  private static readonly NUMBER_REGEX = /^\d+$/;
 
-export type StatusType = 'only';
-export type StatusBorder = 'center';
-export type StatusRadius = 'radius-16';
-
-@Component({
-  selector: 'app-card-marketplace',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './card-marketplace.component.html',
-  styleUrls: ['./card-marketplace.component.scss']
-})
-export class CardMarketplaceComponent {
-  private readonly _issuesService = inject(MarketplaceIssuesService);
-
-  public type: StatusType = 'only';
-  public border: StatusBorder = 'center';
-  public radius: StatusRadius = 'radius-16';
-  public $content = input.required<IContent>();
-
-  public readonly $reward = computed(() => {
-    const rawReward = extractRewardFromLabels(this.$content()?.labels);
+  /**
+   * Transforma las etiquetas del issue y el catálogo a un modelo listo para la UI
+   */
+  public static toViewModel(
+    labels: string[] | undefined,
+    catalog: Map<string, IRewards>
+  ): RewardViewModel {
+    const rawReward = this.extractRewardKey(labels);
 
     if (!rawReward) {
       return {
@@ -53,32 +43,71 @@ export class CardMarketplaceComponent {
       };
     }
 
-    const catalog = this._issuesService.rewardsMap();
-    const matchKey = getRewardMatchKey(rawReward);
-    const rewardInfo = catalog.get(matchKey) ?? this._findRewardByTokens(catalog, matchKey);
-    const resolvedIcon = this._resolveIconName(rewardInfo?.icon);
+    const matchKey = this.normalizeMatchKey(rawReward);
+    const rewardInfo = catalog.get(matchKey) ?? this.findByTokens(catalog, matchKey);
+    const resolvedIcon = this.resolveIconName(rewardInfo?.icon);
 
     return {
       icon: resolvedIcon,
-      label: formatRewardLabel(rawReward),
+      label: this.formatLabel(rawReward),
       isVoluntary: false,
     };
-  });
+  }
 
-  private _resolveIconName(iconName?: string): string {
+  /**
+   * Extrae la etiqueta que inicia por 'rw:'
+   */
+  public static extractRewardKey(labels?: string[]): string {
+    if (!Array.isArray(labels)) return '';
+    return labels.find(label => 
+      label.toLowerCase().startsWith(REWARD_CONFIG.PREFIX)
+    ) ?? '';
+  }
+
+  /**
+   * Normaliza tokens ignorando montos y ordenando alfabéticamente
+   */
+  public static normalizeMatchKey(raw: string | null | undefined): string {
+    if (!raw || typeof raw !== 'string') return '';
+
+    return raw
+      .toLowerCase()
+      .replace(new RegExp(`^${REWARD_CONFIG.PREFIX}`, 'i'), '')
+      .split(REWARD_CONFIG.DELIMITER)
+      .filter(token => Boolean(token) && !this.NUMBER_REGEX.test(token))
+      .sort()
+      .join(REWARD_CONFIG.DELIMITER);
+  }
+
+  /**
+   * Formatea el texto visible conservando montos y subtipos
+   */
+  public static formatLabel(raw: string | null | undefined): string {
+    if (!raw || typeof raw !== 'string' || raw.trim().toLowerCase() === REWARD_CONFIG.NOT_DEFINED) {
+      return REWARD_CONFIG.VOLUNTARY_LABEL;
+    }
+
+    return raw
+      .replace(new RegExp(`^${REWARD_CONFIG.PREFIX}`, 'i'), '')
+      .split(REWARD_CONFIG.DELIMITER)
+      .filter(Boolean)
+      .join(REWARD_CONFIG.JOIN_SEPARATOR);
+  }
+
+  private static resolveIconName(iconName?: string): string {
     const rawIcon = iconName ?? REWARD_CONFIG.DEFAULT_ICON;
     return rawIcon.startsWith(REWARD_CONFIG.ICON_PREFIX)
       ? rawIcon
       : `${REWARD_CONFIG.ICON_PREFIX}${rawIcon}`;
   }
 
-  private _findRewardByTokens(catalog: Map<string, IRewards>, matchKey: string): IRewards | undefined {
+  private static findByTokens(catalog: Map<string, IRewards>, matchKey: string): IRewards | undefined {
     if (catalog.size === REWARD_CONFIG.EMPTY_SIZE) {
       return undefined;
     }
 
     for (const [key, item] of catalog.entries()) {
-      const tokens = key.split('-');
+      const tokens = key.split(REWARD_CONFIG.DELIMITER);
       const isMatch = tokens.every(token => matchKey.includes(token));
       if (isMatch) {
         return item;
@@ -91,167 +120,126 @@ export class CardMarketplaceComponent {
 
 
 
+// marketplace-issues.service.ts
+import { inject, Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, catchError, map, of, shareReplay } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { environment } from 'src/environments/environment';[cite: 6, 11]
+import { IRewards } from './rewards.interface'; // Captura 5[cite: 5]
+import { MarketplaceRewardAdapter } from './marketplace-reward.adapter';
+// Importa tus otras interfaces existentes (IResponseListIssues, etc.)[cite: 11]
+
+@Injectable({ providedIn: 'root' })
+export class MarketplaceIssuesService {
+  private readonly _http = inject(HttpClient);[cite: 11]
+
+  // Flujo reactivo cacheado del catálogo
+  public readonly rewardsCatalog$: Observable<Map<string, IRewards>> = this.getRewards().pipe(
+    map(rewards => {
+      const catalog = new Map<string, IRewards>();
+      rewards.forEach(item => {
+        const key = MarketplaceRewardAdapter.normalizeMatchKey(item.rewardName);
+        catalog.set(key, item);
+      });
+      return catalog;
+    }),
+    catchError(err => {
+      console.error('Error al obtener el catálogo de recompensas', err);
+      return of(new Map<string, IRewards>());
+    }),
+    shareReplay({ bufferSize: 1, refCount: false })
+  );
+
+  // Signal de solo lectura expuesto para los componentes (sin constructor)
+  public readonly rewardsMap = toSignal(this.rewardsCatalog$, {
+    initialValue: new Map<string, IRewards>(),
+  });
+
+  // Tus métodos existentes intactos (Captura 11):[cite: 11]
+  public getListIssues(
+    params: Record<string, string | number>
+  ): Observable<IResponseListIssues> {[cite: 11]
+    const url = buildApiUrl(
+      `http://localhost:3000/catalog/api/v1/${environment.organization}/issues`,[cite: 11]
+      params
+    );
+    return this._http.get<IResponseListIssues>(url);[cite: 11]
+  }
+
+  public getFilters(): Observable<IResponseFilters> {[cite: 11]
+    return this._http.get<IResponseFilters>(
+      `${environment.apiBaseUrl}catalog/api/v1/.../issues/filters`[cite: 11]
+    );
+  }
+
+  public getTopContributors(): Observable<ITopContributors[]> {[cite: 11]
+    return this._http.get<ITopContributors[]>(
+      `${environment.apiBaseUrl}catalog/api/v1/contributors/top`[cite: 11]
+    );
+  }
+
+  public getRewards(): Observable<IRewards[]> {[cite: 6, 11]
+    return this._http.get<IRewards[]>(
+      `${environment.apiBaseUrl}catalog/api/v1/rewards`[cite: 6, 11]
+    );
+  }
+}
 
 
 
-// card-marketplace.component.spec.ts
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ComponentRef, signal } from '@angular/core';
-import { CardMarketplaceComponent } from './card-marketplace.component';
+
+// card-marketplace.component.ts
+import { Component, computed, inject, input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { IContent } from './content.interface';[cite: 7]
 import { MarketplaceIssuesService } from './marketplace-issues.service';
-import { REWARD_CONFIG } from './card-marketplace.constants';
-import { IRewards } from './rewards.interface';
-import { IContent } from './content.interface';
+import { MarketplaceRewardAdapter } from './marketplace-reward.adapter';
 
-describe('CardMarketplaceComponent', () => {
-  let component: CardMarketplaceComponent;
-  let componentRef: ComponentRef<CardMarketplaceComponent>;
-  let fixture: ComponentFixture<CardMarketplaceComponent>;
+export type StatusType = 'only';[cite: 7]
+export type StatusBorder = 'center';[cite: 7]
+export type StatusRadius = 'radius-16';[cite: 7]
 
-  // Signal mockeado para el servicio
-  const rewardsMapMock = signal<Map<string, IRewards>>(new Map());
+@Component({
+  selector: 'app-card-marketplace',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './card-marketplace.component.html',
+  styleUrls: ['./card-marketplace.component.scss'],
+})
+export class CardMarketplaceComponent {
+  private readonly _issuesService = inject(MarketplaceIssuesService);
 
-  const mockService = {
-    rewardsMap: rewardsMapMock,
-  };
+  public type: StatusType = 'only';[cite: 7]
+  public border: StatusBorder = 'center';[cite: 7]
+  public radius: StatusRadius = 'radius-16';[cite: 7]
+  public $content = input.required<IContent>();[cite: 7]
 
-  const createMockContent = (labels?: string[]): IContent => ({
-    id: 101,
-    title: 'Test issue title',
-    labels: labels ?? [],
-  } as unknown as IContent);
+  // Delegación al Adapter
+  public readonly $reward = computed(() =>
+    MarketplaceRewardAdapter.toViewModel(
+      this.$content()?.labels,[cite: 10]
+      this._issuesService.rewardsMap()
+    )
+  );
+}
 
-  beforeEach(async () => {
-    rewardsMapMock.set(new Map());
 
-    await TestBed.configureTestingModule({
-      imports: [CardMarketplaceComponent],
-      providers: [
-        { provide: MarketplaceIssuesService, useValue: mockService },
-      ],
-    }).compileComponents();
+<section class="bc-p-2 bc-flex bc-gap-2 bc-align-items-center">
+  <nv-icon 
+    [class]="$reward().icon" 
+    [size]="$reward().isVoluntary ? 'md' : 'sm'">
+  </nv-icon>
 
-    fixture = TestBed.createComponent(CardMarketplaceComponent);
-    component = fixture.componentInstance;
-    componentRef = fixture.componentRef;
-  });
+  <div class="nv-display-flex nv-flex-direction-column">
+    <span class="bc-opensans-font-style-2-semibold bc-text-brand-primary-00">
+      {{ $reward().label }}
+    </span>
 
-  it('debe crearse correctamente con sus valores por defecto', () => {
-    componentRef.setInput('$content', createMockContent());
-    fixture.detectChanges();
-
-    expect(component).toBeTruthy();
-    expect(component.type).toBe('only');
-    expect(component.border).toBe('center');
-    expect(component.radius).toBe('radius-16');
-  });
-
-  describe('Cálculo de $reward', () => {
-    it('debe retornar estado voluntario cuando no hay labels', () => {
-      componentRef.setInput('$content', createMockContent([]));
-      fixture.detectChanges();
-
-      const result = component.$reward();
-
-      expect(result.isVoluntary).toBe(true);
-      expect(result.icon).toBe(REWARD_CONFIG.VOLUNTARY_ICON);
-      expect(result.label).toBe(REWARD_CONFIG.VOLUNTARY_LABEL);
-    });
-
-    it('debe retornar estado voluntario cuando labels no contiene ninguno con prefijo rw:', () => {
-      componentRef.setInput('$content', createMockContent(['bug', 'feature']));
-      fixture.detectChanges();
-
-      const result = component.$reward();
-
-      expect(result.isVoluntary).toBe(true);
-      expect(result.icon).toBe(REWARD_CONFIG.VOLUNTARY_ICON);
-    });
-
-    it('debe resolver la recompensa exacta desde el catálogo y formatear la etiqueta', () => {
-      const catalog = new Map<string, IRewards>();
-      catalog.set('aws-voucher', {
-        rewardName: 'aws-voucher',
-        icon: 'icon-cloud',
-        description: 'AWS Voucher',
-      });
-      rewardsMapMock.set(catalog);
-
-      componentRef.setInput('$content', createMockContent(['rw:aws-voucher']));
-      fixture.detectChanges();
-
-      const result = component.$reward();
-
-      expect(result.isVoluntary).toBe(false);
-      expect(result.icon).toBe('icon-cloud');
-      expect(result.label).toBe('aws voucher');
-    });
-
-    it('debe resolver el icono correctamente aun cuando los tokens vengan permutados', () => {
-      const catalog = new Map<string, IRewards>();
-      catalog.set('aws-voucher', {
-        rewardName: 'aws-voucher',
-        icon: 'icon-cloud',
-        description: 'AWS Voucher',
-      });
-      rewardsMapMock.set(catalog);
-
-      componentRef.setInput('$content', createMockContent(['rw:voucher-aws']));
-      fixture.detectChanges();
-
-      const result = component.$reward();
-
-      expect(result.isVoluntary).toBe(false);
-      expect(result.icon).toBe('icon-cloud');
-    });
-
-    it('debe resolver por tokens parciales si incluye sufijos como -copilot', () => {
-      const catalog = new Map<string, IRewards>();
-      catalog.set('github-voucher', {
-        rewardName: 'github-voucher',
-        icon: 'icon-cat',
-        description: 'GitHub Copilot',
-      });
-      rewardsMapMock.set(catalog);
-
-      componentRef.setInput('$content', createMockContent(['rw:github-voucher-copilot']));
-      fixture.detectChanges();
-
-      const result = component.$reward();
-
-      expect(result.isVoluntary).toBe(false);
-      expect(result.icon).toBe('icon-cat');
-      expect(result.label).toBe('github voucher copilot');
-    });
-
-    it('debe anteponer el prefijo icon- si el backend devuelve un icono sin prefijo', () => {
-      const catalog = new Map<string, IRewards>();
-      catalog.set('azure-voucher', {
-        rewardName: 'azure-voucher',
-        icon: 'muverang',
-        description: 'Azure',
-      });
-      rewardsMapMock.set(catalog);
-
-      componentRef.setInput('$content', createMockContent(['rw:azure-voucher']));
-      fixture.detectChanges();
-
-      const result = component.$reward();
-
-      expect(result.icon).toBe('icon-muverang');
-    });
-
-    it('debe aplicar DEFAULT_ICON si la recompensa no existe en el catálogo', () => {
-      rewardsMapMock.set(new Map());
-
-      componentRef.setInput('$content', createMockContent(['rw:desconocido-voucher']));
-      fixture.detectChanges();
-
-      const result = component.$reward();
-
-      expect(result.isVoluntary).toBe(false);
-      expect(result.icon).toBe(REWARD_CONFIG.DEFAULT_ICON);
-      expect(result.label).toBe('desconocido voucher');
-    });
-  });
-});
+    @if ($reward().isVoluntary) {
+      <span class="bc-opensans-font-style-2-regular bc-text-brand-primary-00">
+        (contribución voluntaria)
+      </span>
+    }
+  </div>
+</section>
