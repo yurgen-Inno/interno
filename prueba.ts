@@ -1,31 +1,33 @@
 // marketplace.adapter.ts
-import { IRewards } from './rewards.interface'; //[cite: 5]
-import { IContent } from './content.interface'; //
+import { IRewards } from './rewards.interface'; // Tu interfaz de la captura 5
+import { IContent } from './content.interface'; // Tu interfaz de la captura 7
 
 /**
- * Normaliza claves tolerando permutaciones y montos:
+ * Normaliza claves tolerando sufijos de montos y permutaciones:
  * 'rw:aws-voucher-3000' -> 'aws-voucher'
- * 'rw:voucher-aws-3000' -> 'aws-voucher'
+ * 'rw:voucher-aws'      -> 'aws-voucher'
  */
 export function getRewardMatchKey(raw: string | null | undefined): string {
   if (!raw || typeof raw !== 'string') return '';
+
   return raw
     .toLowerCase()
     .replace(/^rw:/i, '')
     .split('-')
-    .filter(token => token && !/^\d+$/.test(token))
-    .sort()
+    .filter(token => token && !/^\d+$/.test(token)) // Elimina montos numéricos (3000, etc.)
+    .sort()                                         // Orden simétrico invariable
     .join('-');
 }
 
 /**
- * Genera el label legible conservando el monto:
+ * Formatea el texto visible conservando todo el contenido:
  * 'rw:aws-voucher-3000' -> 'aws voucher 3000'
  */
 export function formatRewardLabel(raw: string | null | undefined): string {
   if (!raw || typeof raw !== 'string' || raw.trim().toLowerCase() === 'no definido') {
     return 'Sin recompensa';
   }
+
   return raw
     .replace(/^rw:/i, '')
     .split('-')
@@ -34,28 +36,33 @@ export function formatRewardLabel(raw: string | null | undefined): string {
 }
 
 /**
- * Adapter que transforma un elemento crudo del backend a IContent
+ * Transforma un elemento crudo del backend en el contrato IContent
  */
 export function adaptMarketplaceIssue(
-  rawItem: any, 
-  rewardsCatalog: Map<string, IRewards>
+  rawItem: any,
+  catalog: Map<string, IRewards>
 ): IContent {
-  const rawGift: string = rawItem.gift; // o el campo que traiga 'rw:aws-voucher-3000'
+  // Ajusta 'gift' por el nombre del campo exacto que viene del backend
+  const rawGift: string = rawItem.gift ?? rawItem.reward ?? '';
   const isVoluntary = !rawGift || rawGift.trim().toLowerCase() === 'no definido';
 
+  if (isVoluntary) {
+    return {
+      ...rawItem,
+      rewardIcon: 'icon-hand-handshake',
+      rewardLabel: 'Sin recompensa',
+      isVoluntary: true
+    };
+  }
+
   const matchKey = getRewardMatchKey(rawGift);
-  const matchedReward = rewardsCatalog.get(matchKey);
+  const rewardData = catalog.get(matchKey);
 
   return {
     ...rawItem,
-    // Propiedades calculadas listas para el consumo del card:
-    rewardIcon: isVoluntary 
-      ? 'icon-hand-handshake' 
-      : (matchedReward?.icon ?? 'icon-gift'),
-    rewardLabel: isVoluntary 
-      ? 'Sin recompensa' 
-      : formatRewardLabel(rawGift),
-    isVoluntary
+    rewardIcon: rewardData?.icon ?? 'icon-gift',
+    rewardLabel: formatRewardLabel(rawGift),
+    isVoluntary: false
   };
 }
 
@@ -66,50 +73,57 @@ export function adaptMarketplaceIssue(
 
 
 
-// marketplace-parent.component.ts
-import { Component, effect, inject, signal } from '@angular/core';
-import { adaptMarketplaceIssue, getRewardMatchKey } from './marketplace.adapter';
+
+
+
+
+
+// Tu componente padre (captura 9)
+import { Component, effect, OnInit, signal, inject } from '@angular/core';
 import { IRewards } from './rewards.interface'; //[cite: 5]
+import { IContent } from './content.interface'; //
+import { adaptMarketplaceIssue, getRewardMatchKey } from './marketplace.adapter';
 
-// ... dentro de tu componente padre:
+// ... dentro de tu clase:
 
-// 1. Signal para el mapa del catálogo
+// Signal en memoria para el catálogo O(1)
 private $rewardsCatalog = signal<Map<string, IRewards>>(new Map());
 
 ngOnInit(): void {
-  // Consumimos el endpoint que ya tienes expuesto (getRewards)
-  this._marketplaceIssues.getRewards().subscribe({ //
-    next: (rewards) => {
-      const catalog = new Map<string, IRewards>();
-      for (const item of rewards) {
-        catalog.set(getRewardMatchKey(item.rewardName), item);
-      }
-      this.$rewardsCatalog.set(catalog);
+  // Consumir el endpoint que ya tienes listo en tu servicio (captura 6)
+  this._marketplaceIssues.getRewards().subscribe({ //[cite: 6]
+    next: (rewards: IRewards[]) => {
+      const mapCatalog = new Map<string, IRewards>();
+      rewards.forEach(item => {
+        // Indexamos por la clave normalizada (ej: 'aws-voucher')
+        mapCatalog.set(getRewardMatchKey(item.rewardName), item);
+      });
+      this.$rewardsCatalog.set(mapCatalog);
     }
   });
 }
 
-// 2. Modificación de tu efecto existente en la captura (línea 125 aprox):
+// Modificación puntual de tu método existente _setupResponseEffect (línea 125 captura 9):
 private _setupResponseEffect(): void {
   effect(() => {
     const response = this.resourceIssues.value(); //[cite: 9]
     if (!response) return;
 
-    // ... lógica de paginación existente[cite: 9] ...
+    // ... lógica de totalPages y cálculo existente ...[cite: 9]
 
     if (response.content?.length) {
       const catalog = this.$rewardsCatalog();
 
-      // Pasamos cada item por el Adapter antes de acumularlo
-      const adaptedContent: IContent[] = response.content.map(item => 
+      // Mapeamos los datos con el adapter antes de guardarlos
+      const adaptedItems: IContent[] = response.content.map(item =>
         adaptMarketplaceIssue(item, catalog)
       );
 
       if (response.page === 1) { //[cite: 9]
-        this.$accumulatedItems.set([...adaptedContent]); //[cite: 9]
+        this.$accumulatedItems.set([...adaptedItems]); //[cite: 9]
       } else {
-        this.$accumulatedItems.update(prev => 
-          this._appendWithinWindow(prev, adaptedContent) //[cite: 9]
+        this.$accumulatedItems.update(prev =>
+          this._appendWithinWindow(prev, adaptedItems) //[cite: 9]
         );
       }
     } else if (response.page === 1 && response.content?.length === 0) { //[cite: 9]
@@ -121,10 +135,26 @@ private _setupResponseEffect(): void {
 
 
 
+
+
+
+
+
+// card-marketplace.component.ts (captura 7)
+export class CardMarketplaceComponent {
+  public type: StatusType = 'only'; //[cite: 7]
+  public border: StatusBorder = 'center'; //[cite: 7]
+  public radius: StatusRadius = 'radius-16'; //[cite: 7]
+  public $content = input.required<IContent>(); //[cite: 7]
+}
+
+
+
+
 <!-- card-marketplace.component.html -->
 <section class="bc-p-2 bc-flex bc-gap-2 bc-align-items-center">
   <nv-icon 
-    [class]="$content().rewardIcon" 
+    [class]="$content().rewardIcon!" 
     [size]="$content().isVoluntary ? 'md' : 'sm'">
   </nv-icon>
 
