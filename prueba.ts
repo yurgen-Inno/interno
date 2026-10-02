@@ -1,56 +1,147 @@
-describe('getRewards', () => {
-  const rewardsUrl = `${environment.apiBaseUrl}catalog/api/v1/rewards`;
-  const mockRewards: IRewards[] = [
-    { rewardName: 'aws-voucher', description: 'AWS Voucher', icon: 'icon-cloud' },
-    { rewardName: 'github-voucher', description: 'GitHub Voucher', icon: 'icon-cat' },
-  ];
+// marketplace-rewards.constant.ts
+export const REWARD_CONFIG = {
+  PREFIX: 'rw:',
+  DEFAULT_ICON: 'icon-gift',[cite: 1]
+  VOLUNTARY_ICON: 'icon-hand-handshake',[cite: 2]
+  VOLUNTARY_LABEL: 'Sin recompensa',[cite: 2]
+  NOT_DEFINED: 'no definido',[cite: 1]
+  ICON_PREFIX: 'icon-',
+  DELIMITER: '-',[cite: 1]
+  JOIN_SEPARATOR: ' ',[cite: 1]
+  EMPTY_SIZE: 0,
+} as const;
 
-  it('should fetch the rewards from the correct endpoint', () => {
-    // 1. Resuelve la petición que toSignal abrió al instanciar el servicio
-    httpController.expectOne(rewardsUrl).flush([]);
+// Mapeo del slug que viene del backend -> slug oficial en Simple Icons
+export const BRAND_ICON_WEB_MAP: Record<string, string> = {
+  'aws': 'amazonaws',
+  'amazon': 'amazonaws',
+  'github': 'github',
+  'azure': 'microsoftazure',
+  'microsoft-azure': 'microsoftazure',
+  'udemy': 'udemy',
+};
 
-    // 2. Ejecuta la llamada bajo prueba
-    spectator.service.getRewards().subscribe(response => {
-      expect(response).toEqual(mockRewards);
-      expect(response.length).toBe(2);
-    });
+// Íconos que sí existen en tu librería nativa (<nv-icon>) y no deben ir a la web
+export const INTERNAL_CUSTOM_ICONS = new Set<string>([
+  'puntos-colombia', // o 'icon-puntos-colombia' según cómo llegue en el JSON
+]);
 
-    // 3. Responde a la petición propia de este test
-    const req = httpController.expectOne(rewardsUrl);
-    expect(req.request.method).toBe('GET');
-    req.flush(mockRewards);
+
+
+// reward-icon.component.ts
+import { Component, computed, input, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { 
+  REWARD_CONFIG, 
+  BRAND_ICON_WEB_MAP, 
+  INTERNAL_CUSTOM_ICONS 
+} from './marketplace-rewards.constant';
+
+@Component({
+  selector: 'app-reward-icon',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    @if (hasLoadError() || isInternalIcon()) {
+      <!-- Renderiza con tu librería interna nv-icon -->
+      <nv-icon 
+        [class]="resolvedInternalClass()" 
+        [size]="size()">
+      </nv-icon>
+    } @else {
+      <!-- Renderiza la marca externa desde la web vía CDN oficial -->
+      <img 
+        [src]="cdnUrl()" 
+        [alt]="cleanName()" 
+        (error)="onImageError()"
+        class="reward-web-icon"
+        [class.icon-sm]="size() === 'sm'"
+        [class.icon-md]="size() === 'md'"
+        loading="lazy"
+      />
+    }
+  `,
+  styles: [`
+    .reward-web-icon {
+      display: inline-block;
+      vertical-align: middle;
+      object-fit: contain;
+    }
+    .icon-sm {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+    .icon-md {
+      width: 1.5rem;
+      height: 1.5rem;
+    }
+  `]
+})
+export class RewardIconComponent {
+  public iconName = input.required<string>();
+  public size = input<'sm' | 'md'>('sm');
+
+  public hasLoadError = signal(false);
+
+  public cleanName = computed(() => {
+    return this.iconName()?.trim().toLowerCase() ?? '';
   });
 
-  it('should handle an empty rewards response', () => {
-    // 1. Resuelve la petición inicial de toSignal
-    httpController.expectOne(rewardsUrl).flush([]);
+  // Determina si debe usar nv-icon
+  public isInternalIcon = computed(() => {
+    const name = this.cleanName();
+    if (!name) return true;
 
-    // 2. Ejecuta la llamada
-    spectator.service.getRewards().subscribe(response => {
-      expect(response).toEqual([]);
-    });
-
-    // 3. Responde con arreglo vacío
-    const req = httpController.expectOne(rewardsUrl);
-    req.flush([]);
+    // Si viene con prefijo icon- o está en la lista de los que sí tienes en tu librería
+    return name.startsWith(REWARD_CONFIG.ICON_PREFIX) || INTERNAL_CUSTOM_ICONS.has(name);
   });
 
-  it('should propagate an HTTP error', () => {
-    // 1. Resuelve la petición inicial de toSignal
-    httpController.expectOne(rewardsUrl).flush([]);
+  // Resuelve la clase CSS adecuada para nv-icon
+  public resolvedInternalClass = computed(() => {
+    if (this.hasLoadError()) {
+      return REWARD_CONFIG.DEFAULT_ICON; // 'icon-gift' ante fallos 404 de red[cite: 1]
+    }
 
-    // 2. Ejecuta la llamada esperando el error
-    spectator.service.getRewards().subscribe({
-      error: err => {
-        expect(err.status).toBe(500);
-      },
-    });
+    const name = this.cleanName();
+    if (!name) return REWARD_CONFIG.DEFAULT_ICON;[cite: 1]
 
-    // 3. Emite el error 500
-    const req = httpController.expectOne(rewardsUrl);
-    req.flush('Server error', {
-      status: 500,
-      statusText: 'Internal Server Error',
-    });
+    // Si está en tu librería pero vino sin el prefijo 'icon-', se lo anteponemos
+    return name.startsWith(REWARD_CONFIG.ICON_PREFIX)
+      ? name
+      : `${REWARD_CONFIG.ICON_PREFIX}${name}`;
   });
-});
+
+  // URL del CDN con el slug oficial resuelto
+  public cdnUrl = computed(() => {
+    const raw = this.cleanName();
+    const slug = BRAND_ICON_WEB_MAP[raw] ?? raw;
+    return `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${slug}.svg`;
+  });
+
+  public onImageError(): void {
+    // Si la web devuelve 404, cae inmediatamente al fallback de tu librería
+    this.hasLoadError.set(true);
+  }
+}
+
+
+
+<section class="bc-p-2 bc-flex bc-gap-2 bc-align-items-center">
+  <!-- Componente abstracto que resuelve tanto la web como tu librería interna -->
+  <app-reward-icon 
+    [iconName]="$reward().icon" 
+    [size]="$reward().isVoluntary ? 'md' : 'sm'">
+  </app-reward-icon>
+
+  <div class="nv-display-flex nv-flex-direction-column">
+    <span class="bc-opensans-font-style-2-semibold bc-text-brand-primary-00">
+      {{ $reward().label }}
+    </span>
+
+    @if ($reward().isVoluntary) {
+      <span class="bc-opensans-font-style-2-regular bc-text-brand-primary-00">
+        (contribución voluntaria)
+      </span>
+    }
+  </div>
+</section>
