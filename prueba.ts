@@ -2,7 +2,7 @@
   @if ($reward().faIcon; as faIcon) {
     <fa-icon 
       [icon]="faIcon" 
-      style="display: inline-block; width: 20px; height: 20px; font-size: 20px; line-height: 1; flex-shrink: 0; overflow: hidden;">
+      style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; font-size: 18px; line-height: 1; flex-shrink: 0;">
     </fa-icon>
   } @else if ($reward().nvIcon; as nvIcon) {
     <nv-icon
