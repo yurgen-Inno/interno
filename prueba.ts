@@ -1,263 +1,267 @@
-import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faAws, faGithub, faMicrosoft } from '@fortawesome/free-brands-svg-icons';
-import { faU } from '@fortawesome/free-solid-svg-icons';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { signal, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
-export const REWARD_CONFIG = {
-  PREFIX: 'rw:',
-  DELIMITER: '-',
-  JOIN_SEPARATOR: ' ',
-  DEFAULT_ICON: 'icon-gift',
-  VOLUNTARY_ICON: 'icon-hand-handshake',
-  VOLUNTARY_LABEL: 'Sin recompensa',
-  NOT_DEFINED: 'no definido',
-  ICON_PREFIX: 'icon-',
-} as const;
+import { CardMarketplaceComponent } from './card-marketplace.component';
+import { MarketplaceIssuesService } from './services/marketplace-issues.service';
+import { IContent } from './interfaces/content.interface';
+import { IRewards } from './interfaces/rewards.interface';
+import { ICON_SIZES } from './constants/rewards.constants';
 
-export const ICON_SIZES = {
-  VOLUNTARY: 'md',
-  DEFAULT: 'sm',
-} as const;
+describe('CardMarketplaceComponent', () => {
+  let component: CardMarketplaceComponent;
+  let fixture: ComponentFixture<CardMarketplaceComponent>;
+  let mockRewardsMapSignal: ReturnType<typeof signal<Map<string, IRewards>>>;
 
-export const NUMBER_REGEX = /^\d+$/;
-export const PREFIX_REGEX = new RegExp(`^${REWARD_CONFIG.PREFIX}`, 'i');
-export const CLEAN_TOKEN_REGEX = /[^a-z0-9]/g;
-export const WHITESPACE_REGEX = /\s+/;
+  const mockContent: IContent = {
+    id: 1,
+    number: 101,
+    title: 'Nueva funcionalidad',
+    body: 'Descripción de prueba',
+    assigneesCount: 0,
+    createdAt: '2026-01-01',
+    updatedAt: '2026-01-02',
+    htmlUrl: 'https://github.com',
+    repositoryName: 'repo-test',
+    state: 'open',
+    projectName: null,
+    url: null,
+    labels: ['rw:aws-voucher-1000'],
+  };
 
-export type SupportedBrand = 'aws' | 'github' | 'azure' | 'udemy';
+  beforeEach(async () => {
+    mockRewardsMapSignal = signal(new Map<string, IRewards>());
 
-export const BRAND_FA_ICONS: Record<SupportedBrand, IconDefinition> = {
-  aws: faAws,
-  github: faGithub,
-  azure: faMicrosoft,
-  udemy: faU,
-};
+    const mockMarketplaceService = {
+      $rewardsMap: mockRewardsMapSignal,
+    };
 
-export const BRAND_ALIASES: Record<string, SupportedBrand> = {
-  aws: 'aws',
-  amazon: 'aws',
-  amazonaws: 'aws',
-  github: 'github',
-  git: 'github',
-  azure: 'azure',
-  microsoft: 'azure',
-  microsoftazure: 'azure',
-  udemy: 'udemy',
-};
+    await TestBed.configureTestingModule({
+      imports: [CardMarketplaceComponent, FontAwesomeModule],
+      providers: [
+        { provide: MarketplaceIssuesService, useValue: mockMarketplaceService },
+      ],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CardMarketplaceComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('debe crearse correctamente e inicializar las constantes de tamaño', () => {
+    fixture.componentRef.setInput('$content', mockContent);
+    fixture.detectChanges();
+    expect(component).toBeTruthy();
+    expect(component.iconSizes).toEqual(ICON_SIZES);
+  });
+
+  it('debe renderizar <fa-icon> con clase reward-fa-icon y mostrar el label correcto', () => {
+    fixture.componentRef.setInput('$content', {
+      ...mockContent,
+      labels: ['rw:aws-voucher-1000'],
+    });
+    fixture.detectChanges();
+
+    const faIconEl = fixture.debugElement.query(By.css('fa-icon.reward-fa-icon'));
+    const nvIconEl = fixture.debugElement.query(By.css('nv-icon'));
+
+    expect(faIconEl).toBeTruthy();
+    expect(nvIconEl).toBeFalsy();
+
+    // Selector específico para evitar colisión con el label de "Proyecto:"[cite: 13]
+    const labelEl = fixture.debugElement.query(
+      By.css('div.nv-display-flex span.bc-opensans-font-style-2-semibold')
+    );
+    expect(labelEl.nativeElement.textContent.trim()).toBe('aws voucher 1000');
+  });
+
+  it('debe renderizar <nv-icon> con tamaño VOLUNTARY cuando no tenga etiqueta de recompensa', () => {
+    fixture.componentRef.setInput('$content', {
+      ...mockContent,
+      labels: ['bug', 'enhancement'],
+    });
+    fixture.detectChanges();
+
+    const faIconEl = fixture.debugElement.query(By.css('fa-icon'));
+    const nvIconEl = fixture.debugElement.query(By.css('nv-icon'));
+
+    expect(faIconEl).toBeFalsy();
+    expect(nvIconEl).toBeTruthy();
+    expect(nvIconEl.attributes['size'] || nvIconEl.properties['size']).toBe(ICON_SIZES.VOLUNTARY);
+
+    const voluntarySpan = fixture.debugElement.query(
+      By.css('span.bc-opensans-font-style-2-regular')
+    );
+    expect(voluntarySpan).toBeTruthy();
+    expect(voluntarySpan.nativeElement.textContent).toContain('(contribución voluntaria)');
+  });
+});
 
 
 
-import { Injectable } from '@angular/core';
-import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { IRewards, RewardViewModel } from '../interfaces/rewards.interface';
+import { IRewards } from '@core/models/marketplace-issues.model';
+import { AdapterMarketplaceIssuesService } from './adapter-marketplace-issues.service';
 import {
   REWARD_CONFIG,
-  NUMBER_REGEX,
-  PREFIX_REGEX,
-  CLEAN_TOKEN_REGEX,
-  WHITESPACE_REGEX,
   BRAND_FA_ICONS,
-  BRAND_ALIASES,
-  SupportedBrand,
-} from '../constants/rewards.constants';
+} from '@core/constants/marketplace-issues.constant';
 
-@Injectable({
-  providedIn: 'root',
-})
-export class AdapterMarketplaceIssuesService {
-  public static toViewModel(
-    labels: string[] | undefined,
-    catalog: Map<string, IRewards>
-  ): RewardViewModel {
-    const rawReward = this.extractRewardKey(labels);
+describe('MarketplaceRewardAdapter', () => {
+  let mockCatalog: Map<string, IRewards>;
 
-    if (!rawReward) {
-      return {
+  beforeEach(() => {
+    mockCatalog = new Map<string, IRewards>([
+      [
+        'aws-voucher',
+        {
+          rewardName: 'aws-voucher',
+          description: 'Bono AWS',
+          icon: 'icon-cloud',
+        },
+      ],
+      [
+        'github-voucher',
+        {
+          rewardName: 'github-voucher',
+          description: 'Bono Github',
+          icon: 'cat',
+        },
+      ],
+      [
+        'other-benefit',
+        {
+          rewardName: 'other-benefit',
+          description: 'Beneficio interno',
+          icon: 'icon-star',
+        },
+      ],
+    ]);
+  });
+
+  describe('extractRewardKey', () => {
+    it('debe extraer la etiqueta que inicia con el prefijo configurado', () => {
+      const labels = ['bug', 'frontend', 'rw:aws-voucher-3000'];
+      const result = AdapterMarketplaceIssuesService.extractRewardKey(labels);
+      expect(result).toBe('rw:aws-voucher-3000');
+    });
+
+    it('debe retornar string vacío si labels es undefined o no es un arreglo', () => {
+      expect(AdapterMarketplaceIssuesService.extractRewardKey(undefined)).toBe('');
+      expect(AdapterMarketplaceIssuesService.extractRewardKey([] as any)).toBe('');
+    });
+
+    it('debe retornar string vacío si ninguna etiqueta coincide', () => {
+      const labels = ['bug', 'enhancement'];
+      expect(AdapterMarketplaceIssuesService.extractRewardKey(labels)).toBe('');
+    });
+  });
+
+  describe('normalizeMatchKey', () => {
+    it('debe remover el prefijo rw:, ignorar montos numéricos y ordenar alfabéticamente', () => {
+      const raw = 'rw:aws-voucher-3000';
+      const result = AdapterMarketplaceIssuesService.normalizeMatchKey(raw);
+      expect(result).toBe('aws-voucher');
+    });
+
+    it('debe tolerar orden inverso generando la misma clave canónica', () => {
+      const keyDirect = AdapterMarketplaceIssuesService.normalizeMatchKey('rw:aws-voucher');
+      const keyReverse = AdapterMarketplaceIssuesService.normalizeMatchKey('rw:voucher-aws');
+      expect(keyDirect).toBe('aws-voucher');
+      expect(keyReverse).toBe('aws-voucher');
+      expect(keyDirect).toEqual(keyReverse);
+    });
+
+    it('debe retornar string vacío si la entrada es nula o inválida', () => {
+      expect(AdapterMarketplaceIssuesService.normalizeMatchKey(null)).toBe('');
+      expect(AdapterMarketplaceIssuesService.normalizeMatchKey(undefined)).toBe('');
+      expect(AdapterMarketplaceIssuesService.normalizeMatchKey('')).toBe('');
+    });
+  });
+
+  describe('formatLabel', () => {
+    it('debe formatear correctamente la etiqueta conservando identificadores y montos', () => {
+      const result = AdapterMarketplaceIssuesService.formatLabel('rw:aws-voucher-3000');
+      expect(result).toBe('aws voucher 3000');
+    });
+
+    it('debe retornar VOLUNTARY_LABEL si el texto es "no definido" o está vacío', () => {
+      expect(AdapterMarketplaceIssuesService.formatLabel('no definido')).toBe(
+        REWARD_CONFIG.VOLUNTARY_LABEL
+      );
+      expect(AdapterMarketplaceIssuesService.formatLabel('')).toBe(
+        REWARD_CONFIG.VOLUNTARY_LABEL
+      );
+      expect(AdapterMarketplaceIssuesService.formatLabel(undefined)).toBe(
+        REWARD_CONFIG.VOLUNTARY_LABEL
+      );
+    });
+  });
+
+  describe('toViewModel', () => {
+    it('debe retornar el estado voluntario con nvIcon si no existen etiquetas de recompensa', () => {
+      const result = AdapterMarketplaceIssuesService.toViewModel(['ui', 'fix'], mockCatalog);
+
+      expect(result).toEqual({
         label: REWARD_CONFIG.VOLUNTARY_LABEL,
         isVoluntary: true,
         nvIcon: REWARD_CONFIG.VOLUNTARY_ICON,
-      };
-    }
-
-    const matchKey = this.normalizeMatchKey(rawReward);
-    const rewardInfo = catalog.get(matchKey) ?? this.findByTokens(catalog, matchKey);
-    const faIcon = this.resolveFontAwesomeIcon(rawReward, matchKey, rewardInfo);
-
-    if (faIcon) {
-      return {
-        label: this.formatLabel(rawReward),
-        isVoluntary: false,
-        faIcon,
-      };
-    }
-
-    const rawLocalIcon = (rewardInfo?.icon ?? matchKey).trim().toLowerCase();
-    const cleanLocalIcon = rawLocalIcon.replace(
-      new RegExp(`^${REWARD_CONFIG.ICON_PREFIX}`),
-      ''
-    );
-
-    const nvIcon = cleanLocalIcon
-      ? `${REWARD_CONFIG.ICON_PREFIX}${cleanLocalIcon}`
-      : REWARD_CONFIG.DEFAULT_ICON;
-
-    return {
-      label: this.formatLabel(rawReward),
-      isVoluntary: false,
-      nvIcon,
-    };
-  }
-
-  public static extractRewardKey(labels?: string[]): string {
-    if (!Array.isArray(labels)) return '';
-    return (
-      labels.find((item) =>
-        item.toLowerCase().startsWith(REWARD_CONFIG.PREFIX.toLowerCase())
-      ) ?? ''
-    );
-  }
-
-  public static normalizeMatchKey(raw: string | null | undefined): string {
-    if (!raw || typeof raw !== 'string') return '';
-
-    return raw
-      .toLowerCase()
-      .replace(PREFIX_REGEX, '')
-      .split(REWARD_CONFIG.DELIMITER)
-      .filter((token) => Boolean(token) && !NUMBER_REGEX.test(token))
-      .sort()
-      .join(REWARD_CONFIG.DELIMITER);
-  }
-
-  public static formatLabel(raw: string | null | undefined): string {
-    if (!raw || typeof raw !== 'string') return REWARD_CONFIG.VOLUNTARY_LABEL;
-
-    if (raw.trim().toLowerCase() === REWARD_CONFIG.NOT_DEFINED) {
-      return REWARD_CONFIG.VOLUNTARY_LABEL;
-    }
-
-    return raw
-      .replace(PREFIX_REGEX, '')
-      .split(REWARD_CONFIG.DELIMITER)
-      .filter(Boolean)
-      .join(REWARD_CONFIG.JOIN_SEPARATOR);
-  }
-
-  private static findByTokens(
-    catalog: Map<string, IRewards>,
-    matchKey: string
-  ): IRewards | undefined {
-    if (!catalog?.size) return undefined;
-
-    const targetTokens = new Set(matchKey.split(REWARD_CONFIG.DELIMITER));
-
-    return Array.from(catalog.values()).find((item) => {
-      const itemTokens = this.normalizeMatchKey(item.rewardName).split(
-        REWARD_CONFIG.DELIMITER
-      );
-      return itemTokens.every((token) => targetTokens.has(token));
+      });
     });
-  }
 
-  private static resolveFontAwesomeIcon(
-    rawReward: string,
-    matchKey: string,
-    rewardInfo?: IRewards
-  ): IconDefinition | undefined {
-    const combinedTerms = [
-      rewardInfo?.icon,
-      rewardInfo?.rewardName,
-      matchKey,
-      rawReward,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
+    it('debe resolver faIcon cuando coincide la clave normalizada de una marca (aws)', () => {
+      const labels = ['rw:aws-voucher-5000'];
+      const result = AdapterMarketplaceIssuesService.toViewModel(labels, mockCatalog);
 
-    const tokens = combinedTerms
-      .replace(new RegExp(REWARD_CONFIG.ICON_PREFIX, 'g'), ' ')
-      .replace(CLEAN_TOKEN_REGEX, ' ')
-      .split(WHITESPACE_REGEX)
-      .filter((token) => Boolean(token) && !NUMBER_REGEX.test(token));
+      expect(result).toEqual({
+        label: 'aws voucher 5000',
+        isVoluntary: false,
+        faIcon: BRAND_FA_ICONS['aws'],
+      });
+    });
 
-    const matchedBrand = tokens
-      .map((token) => BRAND_ALIASES[token] ?? (token as SupportedBrand))
-      .find((brand) => brand in BRAND_FA_ICONS);
+    it('debe resolver faIcon incluso si los tokens vienen invertidos (voucher-aws)', () => {
+      const labels = ['rw:voucher-aws-3000'];
+      const result = AdapterMarketplaceIssuesService.toViewModel(labels, mockCatalog);
 
-    return matchedBrand ? BRAND_FA_ICONS[matchedBrand] : undefined;
-  }
-}
+      expect(result).toEqual({
+        label: 'voucher aws 3000',
+        isVoluntary: false,
+        faIcon: BRAND_FA_ICONS['aws'],
+      });
+    });
 
+    it('debe resolver faIcon a través de alias (ej. amazon)', () => {
+      const labels = ['rw:amazon-voucher-2000'];
+      const result = AdapterMarketplaceIssuesService.toViewModel(labels, mockCatalog);
 
-import { Component, ChangeDetectionStrategy, inject, input, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { MarketplaceIssuesService } from './services/marketplace-issues.service';
-import { AdapterMarketplaceIssuesService } from './services/adapter-marketplace-issues.service';
-import { IContent } from './interfaces/content.interface';
-import { ICON_SIZES } from './constants/rewards.constants';
+      expect(result).toEqual({
+        label: 'amazon voucher 2000',
+        isVoluntary: false,
+        faIcon: BRAND_FA_ICONS['aws'],
+      });
+    });
 
-@Component({
-  selector: 'app-card-marketplace',
-  standalone: true,
-  imports: [CommonModule, FontAwesomeModule],
-  templateUrl: './card-marketplace.component.html',
-  styleUrls: ['./card-marketplace.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-export class CardMarketplaceComponent {
-  private readonly _issuesService = inject(MarketplaceIssuesService);
+    it('debe retornar nvIcon si la recompensa existe en el catálogo pero NO es de FontAwesome', () => {
+      const labels = ['rw:other-benefit'];
+      const result = AdapterMarketplaceIssuesService.toViewModel(labels, mockCatalog);
 
-  public readonly iconSizes = ICON_SIZES;
-  public readonly $content = input.required<IContent>();
+      expect(result).toEqual({
+        label: 'other benefit',
+        isVoluntary: false,
+        nvIcon: 'icon-star',
+      });
+    });
 
-  public readonly $reward = computed(() =>
-    AdapterMarketplaceIssuesService.toViewModel(
-      this.$content()?.labels,
-      this._issuesService.$rewardsMap()
-    )
-  );
-}
+    it('debe usar el prefijo limpio para nvIcon si la recompensa no existe en catálogo ni FontAwesome', () => {
+      const labels = ['rw:unknown-reward-100'];
+      const result = AdapterMarketplaceIssuesService.toViewModel(labels, mockCatalog);
 
-
-<section class="bc-p-2 bc-flex bc-gap-2 bc-align-items-center">
-  @if ($reward().faIcon; as faIcon) {
-    <fa-icon [icon]="faIcon" class="reward-fa-icon"></fa-icon>
-  } @else if ($reward().nvIcon; as nvIcon) {
-    <nv-icon
-      [class]="nvIcon"
-      [size]="$reward().isVoluntary ? iconSizes.VOLUNTARY : iconSizes.DEFAULT">
-    </nv-icon>
-  }
-
-  <div class="nv-display-flex nv-flex-direction-column">
-    <span class="bc-opensans-font-style-2-semibold bc-text-brand-primary-00">
-      {{ $reward().label }}
-    </span>
-
-    @if ($reward().isVoluntary) {
-      <span class="bc-opensans-font-style-2-regular bc-text-brand-primary-00">
-        (contribución voluntaria)
-      </span>
-    }
-  </div>
-</section>
-
-
-.reward-fa-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  font-size: 18px;
-  line-height: 1;
-  flex-shrink: 0;
-
-  :host ::ng-deep & svg {
-    width: 1em !important;
-    height: 1em !important;
-    max-width: 18px;
-    max-height: 18px;
-    vertical-align: middle;
-  }
-}
+      expect(result).toEqual({
+        label: 'unknown reward 100',
+        isVoluntary: false,
+        nvIcon: `${REWARD_CONFIG.ICON_PREFIX}reward-unknown`,
+      });
+    });
+  });
+});
