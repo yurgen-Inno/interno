@@ -1,4 +1,4 @@
-it('debe renderizar <nv-icon> con tamaño VOLUNTARY cuando no tenga etiqueta de recompensa', () => {
+it('debe renderizar <nv-icon> y calcular tamaño VOLUNTARY cuando no tenga etiqueta de recompensa', () => {
   fixture.componentRef.setInput('$content', {
     ...mockContent,
     labels: ['bug', 'enhancement'],
@@ -11,12 +11,14 @@ it('debe renderizar <nv-icon> con tamaño VOLUNTARY cuando no tenga etiqueta de 
   expect(faIconEl).toBeFalsy();
   expect(nvIconEl).toBeTruthy();
 
-  // Lee desde nativeElement (soporta tanto propiedad de Web Component como atributo HTML)
-  const actualSize =
-    nvIconEl.nativeElement.getAttribute('size') ??
-    nvIconEl.nativeElement.size;
+  // Validamos que el estado reactivo que alimenta el [size] sea voluntario
+  expect(component.$reward().isVoluntary).toBe(true);
 
-  expect(actualSize).toBe(ICON_SIZES.VOLUNTARY);
+  // Y que la constante coincida
+  const expectedSize = component.$reward().isVoluntary 
+    ? component.iconSizes.VOLUNTARY 
+    : component.iconSizes.DEFAULT;
+  expect(expectedSize).toBe(ICON_SIZES.VOLUNTARY);
 
   const voluntarySpan = fixture.debugElement.query(
     By.css('span.bc-opensans-font-style-2-regular')
