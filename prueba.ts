@@ -1,10 +1,16 @@
 // marketplace-reward.utils.ts
 
 /**
- * Normaliza la clave para buscar en el catálogo:
- * Quita 'rw:', ignora números (ej. montos 3000) y ordena alfabéticamente.
- * 'rw:aws-voucher-3000' -> 'aws-voucher'
- * 'rw:voucher-aws'      -> 'aws-voucher'
+ * Busca dentro del array de labels el que inicia por 'rw:'
+ */
+export function extractRewardFromLabels(labels?: string[]): string {
+  if (!labels || !Array.isArray(labels)) return '';
+  return labels.find(label => label.toLowerCase().startsWith('rw:')) ?? '';
+}
+
+/**
+ * Normaliza la clave para buscar en el mapa:
+ * 'rw:github-voucher-copilot' -> extrae las palabras clave para encontrar 'github-voucher'
  */
 export function getRewardMatchKey(raw: string | null | undefined): string {
   if (!raw || typeof raw !== 'string') return '';
@@ -13,14 +19,14 @@ export function getRewardMatchKey(raw: string | null | undefined): string {
     .toLowerCase()
     .replace(/^rw:/i, '')
     .split('-')
-    .filter(token => token && !/^\d+$/.test(token))
+    .filter(token => token && !/^\d+$/.test(token)) // descarta números
     .sort()
     .join('-');
 }
 
 /**
- * Formatea todo el texto legible para la vista conservando el monto.
- * 'rw:aws-voucher-3000' -> 'aws voucher 3000'
+ * Formatea el texto completo para mostrar:
+ * 'rw:github-voucher-copilot' -> 'github voucher copilot'
  */
 export function formatRewardLabel(raw: string | null | undefined): string {
   if (!raw || typeof raw !== 'string' || raw.trim().toLowerCase() === 'no definido') {
@@ -36,104 +42,110 @@ export function formatRewardLabel(raw: string | null | undefined): string {
 
 
 
-// En tu servicio actual (donde está getRewards)
-import { signal } from '@angular/core';
+// Tu servicio actual (donde tienes getRewards)
+import { inject, Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { IRewards } from './rewards.interface'; // Captura 5[cite: 5]
+import { environment } from 'src/environments/environment'; // Captura 6[cite: 6]
 import { getRewardMatchKey } from './marketplace-reward.utils';
 
-// Dentro de la clase del servicio:
+@Injectable({ providedIn: 'root' })
+export class MarketplaceIssuesService {
+  private _http = inject(HttpClient);
 
-// 1. Signal que almacenará el mapa en memoria
-public rewardsMap = signal<Map<string, IRewards>>(new Map());
+  // Signal accesible por cualquier componente
+  public rewardsMap = signal<Map<string, IRewards>>(new Map());
 
-// 2. Método que ya tenías en la captura 6[cite: 6]
-public getRewards(): Observable<IRewards[]> {
-  return this._http.get<IRewards[]>(
-    `${environment.apiBaseUrl}catalog/api/v1/rewards`[cite: 6]
-  );
+  constructor() {
+    // Se ejecuta automáticamente al arrancar la app o servicio
+    this.initCatalog();
+  }
+
+  public getRewards(): Observable<IRewards[]> {
+    return this._http.get<IRewards[]>(
+      `${environment.apiBaseUrl}catalog/api/v1/rewards` // Captura 6[cite: 6]
+    );
+  }
+
+  private initCatalog(): void {
+    this.getRewards().subscribe({
+      next: (rewards) => {
+        const catalog = new Map<string, IRewards>();
+        rewards.forEach(item => {
+          // Normaliza 'github-voucher' -> 'github-voucher'
+          catalog.set(getRewardMatchKey(item.rewardName), item);
+        });
+        this.rewardsMap.set(catalog);
+      },
+      error: (err) => console.error('Error cargando catalogo de recompensas', err)
+    });
+  }
 }
-
-// 3. Método para precargar el catálogo indexado
-public loadRewardsCatalog(): void {
-  this.getRewards().subscribe({
-    next: (rewards) => {
-      const catalog = new Map<string, IRewards>();
-      rewards.forEach(item => {
-        catalog.set(getRewardMatchKey(item.rewardName), item);
-      });
-      this.rewardsMap.set(catalog);
-    },
-    error: (err) => console.error('Error al cargar catálogo de recompensas', err)
-  });
-}
-
-
-
-
-// Componente Padre (captura 9)
-constructor() {
-  // Lanza la petición del catálogo una sola vez en segundo plano
-  this._marketplaceIssues.loadRewardsCatalog();
-
-  // El resto de tus listeners originales intactos:[cite: 9]
-  this._setupViewportResizeListener();[cite: 9]
-  this._setupFilterResetEffect();[cite: 9]
-  this._setupLoadingEffect();[cite: 9]
-  this._setupResponseEffect();[cite: 9]
-}
-
 
 
 
 
 // card-marketplace.component.ts (Captura 7)
 import { Component, computed, inject, input } from '@angular/core';
-import { IContent } from './content.interface'; // Tu interfaz[cite: 7]
-import { getRewardMatchKey, formatRewardLabel } from './marketplace-reward.utils';
-import { TuServicioActual } from './tu-servicio-actual.service'; // Tu servicio de la captura 6
+import { IContent } from './content.interface'; //[cite: 7]
+import { 
+  extractRewardFromLabels, 
+  getRewardMatchKey, 
+  formatRewardLabel 
+} from './marketplace-reward.utils';
+import { MarketplaceIssuesService } from './marketplace-issues.service'; // Tu servicio de la captura 6[cite: 6]
 
-@Component({
-  selector: 'app-card-marketplace',
-  // ... resto de tu configuración
-})
 export class CardMarketplaceComponent {
-  private _issuesService = inject(TuServicioActual);
+  private _issuesService = inject(MarketplaceIssuesService);
 
-  public type: StatusType = 'only';[cite: 7]
-  public border: StatusBorder = 'center';[cite: 7]
-  public radius: StatusRadius = 'radius-16';[cite: 7]
-  public $content = input.required<IContent>();[cite: 7]
+  public type: StatusType = 'only'; //[cite: 7]
+  public border: StatusBorder = 'center'; //[cite: 7]
+  public radius: StatusRadius = 'radius-16'; //[cite: 7]
+  public $content = input.required<IContent>(); //[cite: 7]
 
-  // Computed que calcula reactivamente los datos de la recompensa
   public $reward = computed(() => {
     const content = this.$content();
-    // Ajusta si la propiedad se llama gift o reward en tu IContent:
-    const rawGift = (content as any)?.gift ?? (content as any)?.reward ?? '';
-    const isVoluntary = !rawGift || rawGift.trim().toLowerCase() === 'no definido';[cite: 1, 2]
+    
+    // 1. Extraer la cadena 'rw:...' del arreglo 'labels' (Captura 10)
+    const rawReward = extractRewardFromLabels((content as any)?.labels); //
 
-    if (isVoluntary) {
+    // Si no trae ningún label con 'rw:', es contribución voluntaria
+    if (!rawReward) {
       return {
-        icon: 'icon-hand-handshake',[cite: 2]
-        label: 'Sin recompensa',[cite: 2]
+        icon: 'icon-hand-handshake', //
+        label: 'Sin recompensa', //[cite: 2]
         isVoluntary: true
       };
     }
 
+    // 2. Buscar en el catálogo
     const catalog = this._issuesService.rewardsMap();
-    const matchKey = getRewardMatchKey(rawGift);
-    const rewardInfo = catalog.get(matchKey);
+    const matchKey = getRewardMatchKey(rawReward);
+
+    // Búsqueda directa o por coincidencia parcial si trae sub-tokens como '-copilot'
+    let rewardInfo = catalog.get(matchKey);
+
+    if (!rewardInfo && catalog.size > 0) {
+      // Si matchKey es 'copilot-github-voucher', busca en el catálogo la recompensa que encaje
+      for (const [key, item] of catalog.entries()) {
+        const tokens = key.split('-');
+        if (tokens.every(token => matchKey.includes(token))) {
+          rewardInfo = item;
+          break;
+        }
+      }
+    }
 
     return {
-      icon: rewardInfo?.icon ?? 'icon-gift',[cite: 1, 5]
-      label: formatRewardLabel(rawGift), // Ejemplo: 'aws voucher 3000'
+      icon: rewardInfo?.icon ?? 'icon-gift', // Icono del backend o fallback
+      label: formatRewardLabel(rawReward),   // Muestra: "github voucher copilot"
       isVoluntary: false
     };
   });
 }
 
 
-
-<!-- card-marketplace.component.html -->
 <section class="bc-p-2 bc-flex bc-gap-2 bc-align-items-center">
   <nv-icon 
     [class]="$reward().icon" 
