@@ -1,3 +1,6 @@
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { faAws, faGithub, faMicrosoft, faUdemy } from '@fortawesome/free-brands-svg-icons';
+
 export const REWARD_CONFIG = {
   PREFIX: 'rw:',
   DELIMITER: '-',
@@ -9,40 +12,43 @@ export const REWARD_CONFIG = {
   ICON_PREFIX: 'icon-',
 } as const;
 
-// Un solo mapa unificado de iconos instalados/mapeados
-export const BRAND_ICON_MAP: Record<string, string> = {
-  aws: 'icon-amazonaws',
-  github: 'icon-github',
-  azure: 'icon-microsoftazure',
-  udemy: 'icon-udemy',
-  'puntos-colombia': 'icon-puntos-colombia',
+export const BRAND_FA_ICONS: Record<string, IconDefinition> = {
+  aws: faAws,
+  github: faGithub,
+  azure: faMicrosoft,
+  udemy: faUdemy,
 };
 
 
 
+
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+
 export interface IRewards {
   description: string;
   icon: string;
-  totalCommits: number;
+  rewardName: string;
 }
 
 export interface RewardViewModel {
-  icon: string;
   label: string;
   isVoluntary: boolean;
+  nvIcon?: string;
+  faIcon?: IconDefinition;
 }
 
 export interface IContent {
   labels?: string[];
   rewardIcon?: string;
   rewardLabel?: string;
-  isVoluntary?: boolean; // Corregido de string a boolean
-  // ... resto de propiedades existentes
+  isVoluntary?: boolean;
 }
 
 
+
+
 import { IRewards, RewardViewModel } from './rewards.model';
-import { BRAND_ICON_MAP, REWARD_CONFIG } from './reward.config';
+import { BRAND_FA_ICONS, REWARD_CONFIG } from './reward.config';
 
 const NUMBER_REGEX = /^\d+$/;
 const PREFIX_REGEX = new RegExp(`^${REWARD_CONFIG.PREFIX}`, 'i');
@@ -56,20 +62,34 @@ export class AdapterMarketplaceIssuesService {
 
     if (!rawReward) {
       return {
-        icon: REWARD_CONFIG.VOLUNTARY_ICON,
         label: REWARD_CONFIG.VOLUNTARY_LABEL,
         isVoluntary: true,
+        nvIcon: REWARD_CONFIG.VOLUNTARY_ICON,
       };
     }
 
     const matchKey = this.normalizeMatchKey(rawReward);
     const rewardInfo = catalog.get(matchKey) ?? this.findByTokens(catalog, matchKey);
-    const resolvedIcon = this.resolveIcon(rewardInfo?.icon ?? matchKey);
+    const iconKey = (rewardInfo?.icon ?? matchKey).trim().toLowerCase();
+
+    // 1. Si es una marca registrada en Font Awesome
+    if (BRAND_FA_ICONS[iconKey]) {
+      return {
+        label: this.formatLabel(rawReward),
+        isVoluntary: false,
+        faIcon: BRAND_FA_ICONS[iconKey],
+      };
+    }
+
+    // 2. Si es icono interno del Design System (nv-icon)
+    const nvIconName = iconKey.startsWith(REWARD_CONFIG.ICON_PREFIX)
+      ? iconKey
+      : `${REWARD_CONFIG.ICON_PREFIX}${iconKey}`;
 
     return {
-      icon: resolvedIcon,
       label: this.formatLabel(rawReward),
       isVoluntary: false,
+      nvIcon: nvIconName || REWARD_CONFIG.DEFAULT_ICON,
     };
   }
 
@@ -93,8 +113,7 @@ export class AdapterMarketplaceIssuesService {
   public static formatLabel(raw: string | null | undefined): string {
     if (!raw || typeof raw !== 'string') return REWARD_CONFIG.VOLUNTARY_LABEL;
 
-    const trimmed = raw.trim().toLowerCase();
-    if (trimmed === REWARD_CONFIG.NOT_DEFINED) {
+    if (raw.trim().toLowerCase() === REWARD_CONFIG.NOT_DEFINED) {
       return REWARD_CONFIG.VOLUNTARY_LABEL;
     }
 
@@ -105,28 +124,6 @@ export class AdapterMarketplaceIssuesService {
       .join(REWARD_CONFIG.JOIN_SEPARATOR);
   }
 
-  /**
-   * Resuelve el nombre del icono final (añadiendo el prefijo icon- o mapeándolo de BRAND_ICON_MAP).
-   */
-  private static resolveIcon(iconName?: string): string {
-    if (!iconName) return REWARD_CONFIG.DEFAULT_ICON;
-
-    const normalized = iconName.trim().toLowerCase();
-
-    // 1. Si coincide con una marca registrada en BRAND_ICON_MAP
-    if (BRAND_ICON_MAP[normalized]) {
-      return BRAND_ICON_MAP[normalized];
-    }
-
-    // 2. Si ya viene con el prefijo 'icon-'
-    if (normalized.startsWith(REWARD_CONFIG.ICON_PREFIX)) {
-      return normalized;
-    }
-
-    // 3. Fallback agregando el prefijo
-    return `${REWARD_CONFIG.ICON_PREFIX}${normalized}`;
-  }
-
   private static findByTokens(
     catalog: Map<string, IRewards>,
     matchKey: string
@@ -135,10 +132,9 @@ export class AdapterMarketplaceIssuesService {
 
     const targetTokens = new Set(matchKey.split(REWARD_CONFIG.DELIMITER));
 
-    for (const [key, item] of catalog.entries()) {
-      const tokens = key.split(REWARD_CONFIG.DELIMITER);
-      // Coincidencia exacta de tokens para evitar falsos positivos
-      const isMatch = tokens.every((token) => targetTokens.has(token));
+    for (const item of catalog.values()) {
+      const itemTokens = this.normalizeMatchKey(item.rewardName).split(REWARD_CONFIG.DELIMITER);
+      const isMatch = itemTokens.every((token) => targetTokens.has(token));
       if (isMatch) return item;
     }
 
@@ -146,16 +142,19 @@ export class AdapterMarketplaceIssuesService {
   }
 }
 
+
+
 import { Component, computed, inject, input } from '@angular/core';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { MarketplaceIssuesService } from './marketplace-issues.service';
 import { AdapterMarketplaceIssuesService } from './adapter-marketplace-issues.service';
 import { IContent } from './rewards.model';
 
 @Component({
   selector: 'app-reward-badge',
-  templateUrl: './reward-badge.component.html',
   standalone: true,
-  // imports: [NvIconModule, ...]
+  imports: [FontAwesomeModule], // Agrega también tu NvIconModule aquí
+  templateUrl: './reward-badge.component.html',
 })
 export class RewardBadgeComponent {
   private readonly _issuesService = inject(MarketplaceIssuesService);
@@ -168,13 +167,22 @@ export class RewardBadgeComponent {
       this._issuesService.$rewardsMap()
     )
   );
-}AdapterMarketplaceIssuesService
+}
+
+
+
 
 <section class="bc-p-2 bc-flex bc-gap-2 bc-align-items-center">
-  <nv-icon 
-    [class]="$reward().icon" 
-    [size]="$reward().isVoluntary ? 'md' : 'sm'">
-  </nv-icon>
+  @if ($reward().faIcon; as faIcon) {
+    <!-- Icono de Marca (Font Awesome) -->
+    <fa-icon [icon]="faIcon" class="bc-text-lg"></fa-icon>
+  } @else if ($reward().nvIcon; as nvIcon) {
+    <!-- Icono Interno (Design System / Voluntario) -->
+    <nv-icon 
+      [class]="nvIcon" 
+      [size]="$reward().isVoluntary ? 'md' : 'sm'">
+    </nv-icon>
+  }
 
   <div class="nv-display-flex nv-flex-direction-column">
     <span class="bc-opensans-font-style-2-semibold bc-text-brand-primary-00">
