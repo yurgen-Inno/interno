@@ -1,137 +1,73 @@
-// marketplace-rewards.constant.ts
-export const REWARD_CONFIG = {
-  PREFIX: 'rw:',
-  DEFAULT_ICON: 'icon-gift',[cite: 1]
-  VOLUNTARY_ICON: 'icon-hand-handshake',[cite: 2]
-  VOLUNTARY_LABEL: 'Sin recompensa',[cite: 2]
-  NOT_DEFINED: 'no definido',[cite: 1]
-  ICON_PREFIX: 'icon-',
-  DELIMITER: '-',[cite: 1]
-  JOIN_SEPARATOR: ' ',[cite: 1]
-  EMPTY_SIZE: 0,
-} as const;
+import { Component, computed, inject, input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { IContent } from './content.interface'; //[cite: 7]
+import { MarketplaceIssuesService } from './marketplace-issues.service';
+import { MarketplaceRewardAdapter } from './marketplace-reward.adapter';
 
-// Mapeo del slug que viene del backend -> slug oficial en Simple Icons
-export const BRAND_ICON_WEB_MAP: Record<string, string> = {
-  'aws': 'amazonaws',
-  'amazon': 'amazonaws',
-  'github': 'github',
-  'azure': 'microsoftazure',
-  'microsoft-azure': 'microsoftazure',
-  'udemy': 'udemy',
+// Mapeo oficial de slugs de marcas para Simple Icons
+const BRAND_SLUGS: Record<string, string> = {
+  aws: 'amazonaws',
+  github: 'github', //
+  azure: 'microsoftazure',
+  udemy: 'udemy', //[cite: 1]
 };
 
-// Íconos que sí existen en tu librería nativa (<nv-icon>) y no deben ir a la web
-export const INTERNAL_CUSTOM_ICONS = new Set<string>([
-  'puntos-colombia', // o 'icon-puntos-colombia' según cómo llegue en el JSON
-]);
-
-
-
-// reward-icon.component.ts
-import { Component, computed, input, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { 
-  REWARD_CONFIG, 
-  BRAND_ICON_WEB_MAP, 
-  INTERNAL_CUSTOM_ICONS 
-} from './marketplace-rewards.constant';
-
 @Component({
-  selector: 'app-reward-icon',
+  selector: 'app-card-marketplace',
   standalone: true,
-  imports: [CommonModule],
-  template: `
-    @if (hasLoadError() || isInternalIcon()) {
-      <!-- Renderiza con tu librería interna nv-icon -->
-      <nv-icon 
-        [class]="resolvedInternalClass()" 
-        [size]="size()">
-      </nv-icon>
-    } @else {
-      <!-- Renderiza la marca externa desde la web vía CDN oficial -->
-      <img 
-        [src]="cdnUrl()" 
-        [alt]="cleanName()" 
-        (error)="onImageError()"
-        class="reward-web-icon"
-        [class.icon-sm]="size() === 'sm'"
-        [class.icon-md]="size() === 'md'"
-        loading="lazy"
-      />
-    }
-  `,
-  styles: [`
-    .reward-web-icon {
-      display: inline-block;
-      vertical-align: middle;
-      object-fit: contain;
-    }
-    .icon-sm {
-      width: 1.25rem;
-      height: 1.25rem;
-    }
-    .icon-md {
-      width: 1.5rem;
-      height: 1.5rem;
-    }
-  `]
+  imports: [CommonModule], // Tu configuración original intacta[cite: 7]
+  templateUrl: './card-marketplace.component.html',
+  styleUrls: ['./card-marketplace.component.scss'],
 })
-export class RewardIconComponent {
-  public iconName = input.required<string>();
-  public size = input<'sm' | 'md'>('sm');
+export class CardMarketplaceComponent {
+  private readonly _issuesService = inject(MarketplaceIssuesService);
 
-  public hasLoadError = signal(false);
+  public $content = input.required<IContent>(); //[cite: 7]
 
-  public cleanName = computed(() => {
-    return this.iconName()?.trim().toLowerCase() ?? '';
-  });
+  // Adapter base
+  public readonly $reward = computed(() =>
+    MarketplaceRewardAdapter.toViewModel(
+      this.$content()?.labels,
+      this._issuesService.$rewardsMap()
+    )
+  );
 
-  // Determina si debe usar nv-icon
-  public isInternalIcon = computed(() => {
-    const name = this.cleanName();
-    if (!name) return true;
-
-    // Si viene con prefijo icon- o está en la lista de los que sí tienes en tu librería
-    return name.startsWith(REWARD_CONFIG.ICON_PREFIX) || INTERNAL_CUSTOM_ICONS.has(name);
-  });
-
-  // Resuelve la clase CSS adecuada para nv-icon
-  public resolvedInternalClass = computed(() => {
-    if (this.hasLoadError()) {
-      return REWARD_CONFIG.DEFAULT_ICON; // 'icon-gift' ante fallos 404 de red[cite: 1]
+  // Determina si es una marca que debe ir por la web
+  public readonly $isWebIcon = computed(() => {
+    const icon = this.$reward().icon?.toLowerCase();
+    // Si empieza por 'icon-' (ej: icon-hand-handshake, icon-gift, icon-puntos-colombia) es de tu librería
+    if (!icon || icon.startsWith('icon-') || icon === 'puntos-colombia') {
+      return false; //
     }
-
-    const name = this.cleanName();
-    if (!name) return REWARD_CONFIG.DEFAULT_ICON;[cite: 1]
-
-    // Si está en tu librería pero vino sin el prefijo 'icon-', se lo anteponemos
-    return name.startsWith(REWARD_CONFIG.ICON_PREFIX)
-      ? name
-      : `${REWARD_CONFIG.ICON_PREFIX}${name}`;
+    return true;
   });
 
-  // URL del CDN con el slug oficial resuelto
-  public cdnUrl = computed(() => {
-    const raw = this.cleanName();
-    const slug = BRAND_ICON_WEB_MAP[raw] ?? raw;
+  // URL del CDN de Simple Icons
+  public readonly $webIconUrl = computed(() => {
+    const rawIcon = this.$reward().icon?.toLowerCase().trim();
+    const slug = BRAND_SLUGS[rawIcon] ?? rawIcon;
     return `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${slug}.svg`;
   });
-
-  public onImageError(): void {
-    // Si la web devuelve 404, cae inmediatamente al fallback de tu librería
-    this.hasLoadError.set(true);
-  }
 }
 
 
 
 <section class="bc-p-2 bc-flex bc-gap-2 bc-align-items-center">
-  <!-- Componente abstracto que resuelve tanto la web como tu librería interna -->
-  <app-reward-icon 
-    [iconName]="$reward().icon" 
-    [size]="$reward().isVoluntary ? 'md' : 'sm'">
-  </app-reward-icon>
+  @if ($reward().isVoluntary) {
+    <!-- Caso voluntario: tu nv-icon original intacto -->
+    <nv-icon class="icon-hand-handshake" size="md"></nv-icon> <!--[cite: 2] -->
+  } @else if ($isWebIcon()) {
+    <!-- Caso iconos de la web (AWS, Azure, Github, Udemy) -->
+    <img 
+      [src]="$webIconUrl()" 
+      [alt]="$reward().label"
+      class="reward-cdn-icon"
+      loading="lazy"
+    />
+  } @else {
+    <!-- Caso icono de tu librería interna (puntos-colombia, fallback gift) -->
+    <nv-icon [class]="$reward().icon" size="sm"></nv-icon> <!--[cite: 1, 2] -->
+  }
 
   <div class="nv-display-flex nv-flex-direction-column">
     <span class="bc-opensans-font-style-2-semibold bc-text-brand-primary-00">
@@ -145,3 +81,16 @@ export class RewardIconComponent {
     }
   </div>
 </section>
+
+
+
+
+.reward-cdn-icon {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  display: inline-block;
+  object-fit: contain;
+  vertical-align: middle;
+}
