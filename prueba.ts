@@ -1,106 +1,190 @@
-describe('$isWebIcon', () => {
-    it('debe retornar true si el icono es una marca externa (ej: aws, azure, github)', () => {
-      // Mockeamos el catálogo para que devuelva un icono externo
-      mockRewardsMapSignal.set(
-        new Map([
-          ['aws-voucher', { rewardName: 'aws-voucher', description: 'AWS', icon: 'aws' }],
-        ])
-      );
+export const REWARD_CONFIG = {
+  PREFIX: 'rw:',
+  DELIMITER: '-',
+  JOIN_SEPARATOR: ' ',
+  DEFAULT_ICON: 'icon-gift',
+  VOLUNTARY_ICON: 'icon-hand-handshake',
+  VOLUNTARY_LABEL: 'Sin recompensa',
+  NOT_DEFINED: 'no definido',
+  ICON_PREFIX: 'icon-',
+} as const;
 
-      const mockContent: IContent = {
-        labels: ['rw:aws-voucher-3000'],
-      } as unknown as IContent;
+// Un solo mapa unificado de iconos instalados/mapeados
+export const BRAND_ICON_MAP: Record<string, string> = {
+  aws: 'icon-amazonaws',
+  github: 'icon-github',
+  azure: 'icon-microsoftazure',
+  udemy: 'icon-udemy',
+  'puntos-colombia': 'icon-puntos-colombia',
+};
 
-      fixture.componentRef.setInput('$content', mockContent);
-      fixture.detectChanges();
 
-      expect(component.$isWebIcon()).toBe(true);
-    });
 
-    it('debe retornar false si el icono inicia con "icon-" (ej: icon-gift, icon-hand-handshake)', () => {
-      // Caso con icono nativo de la librería
-      mockRewardsMapSignal.set(
-        new Map([
-          ['cloud-voucher', { rewardName: 'cloud-voucher', description: 'Cloud', icon: 'icon-cloud' }],
-        ])
-      );
+export interface IRewards {
+  description: string;
+  icon: string;
+  totalCommits: number;
+}
 
-      const mockContent: IContent = {
-        labels: ['rw:cloud-voucher'],
-      } as unknown as IContent;
+export interface RewardViewModel {
+  icon: string;
+  label: string;
+  isVoluntary: boolean;
+}
 
-      fixture.componentRef.setInput('$content', mockContent);
-      fixture.detectChanges();
+export interface IContent {
+  labels?: string[];
+  rewardIcon?: string;
+  rewardLabel?: string;
+  isVoluntary?: boolean; // Corregido de string a boolean
+  // ... resto de propiedades existentes
+}
 
-      expect(component.$isWebIcon()).toBe(false);
-    });
 
-    it('debe retornar false si el icono es "puntos-colombia"', () => {
-      mockRewardsMapSignal.set(
-        new Map([
-          ['puntos-colombia', { rewardName: 'puntos-colombia', description: 'Puntos', icon: 'puntos-colombia' }],
-        ])
-      );
+import { IRewards, RewardViewModel } from './rewards.model';
+import { BRAND_ICON_MAP, REWARD_CONFIG } from './reward.config';
 
-      const mockContent: IContent = {
-        labels: ['rw:puntos-colombia'],
-      } as unknown as IContent;
+const NUMBER_REGEX = /^\d+$/;
+const PREFIX_REGEX = new RegExp(`^${REWARD_CONFIG.PREFIX}`, 'i');
 
-      fixture.componentRef.setInput('$content', mockContent);
-      fixture.detectChanges();
+export class AdapterMarketplaceIssuesService {
+  public static toViewModel(
+    labels: string[] | undefined,
+    catalog: Map<string, IRewards>
+  ): RewardViewModel {
+    const rawReward = this.extractRewardKey(labels);
 
-      expect(component.$isWebIcon()).toBe(false);
-    });
+    if (!rawReward) {
+      return {
+        icon: REWARD_CONFIG.VOLUNTARY_ICON,
+        label: REWARD_CONFIG.VOLUNTARY_LABEL,
+        isVoluntary: true,
+      };
+    }
 
-    it('debe retornar false si no existe icono o es voluntario', () => {
-      const mockContent: IContent = {
-        labels: ['documentation'],
-      } as unknown as IContent;
+    const matchKey = this.normalizeMatchKey(rawReward);
+    const rewardInfo = catalog.get(matchKey) ?? this.findByTokens(catalog, matchKey);
+    const resolvedIcon = this.resolveIcon(rewardInfo?.icon ?? matchKey);
 
-      fixture.componentRef.setInput('$content', mockContent);
-      fixture.detectChanges();
+    return {
+      icon: resolvedIcon,
+      label: this.formatLabel(rawReward),
+      isVoluntary: false,
+    };
+  }
 
-      // Al no tener etiqueta rw:, el adapter asigna VOLUNTARY_ICON ('icon-hand-handshake')
-      expect(component.$isWebIcon()).toBe(false);
-    });
-  });
+  public static extractRewardKey(labels?: string[]): string {
+    if (!Array.isArray(labels)) return '';
+    return labels.find((l) => l.toLowerCase().startsWith(REWARD_CONFIG.PREFIX)) ?? '';
+  }
 
-  describe('$webIconUrl', () => {
-    it('debe construir la URL usando el slug oficial de BRAND_SLUGS (ej: aws -> amazonaws)', () => {
-      mockRewardsMapSignal.set(
-        new Map([
-          ['aws-voucher', { rewardName: 'aws-voucher', description: 'AWS', icon: 'aws' }],
-        ])
-      );
+  public static normalizeMatchKey(raw: string | null | undefined): string {
+    if (!raw || typeof raw !== 'string') return '';
 
-      const mockContent: IContent = {
-        labels: ['rw:aws-voucher-3000'],
-      } as unknown as IContent;
+    return raw
+      .toLowerCase()
+      .replace(PREFIX_REGEX, '')
+      .split(REWARD_CONFIG.DELIMITER)
+      .filter((token) => Boolean(token) && !NUMBER_REGEX.test(token))
+      .sort()
+      .join(REWARD_CONFIG.DELIMITER);
+  }
 
-      fixture.componentRef.setInput('$content', mockContent);
-      fixture.detectChanges();
+  public static formatLabel(raw: string | null | undefined): string {
+    if (!raw || typeof raw !== 'string') return REWARD_CONFIG.VOLUNTARY_LABEL;
 
-      expect(component.$webIconUrl()).toBe(
-        'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/amazonaws.svg'
-      );
-    });
+    const trimmed = raw.trim().toLowerCase();
+    if (trimmed === REWARD_CONFIG.NOT_DEFINED) {
+      return REWARD_CONFIG.VOLUNTARY_LABEL;
+    }
 
-    it('debe construir la URL con el valor crudo si el slug no requiere override (ej: github)', () => {
-      mockRewardsMapSignal.set(
-        new Map([
-          ['github-voucher', { rewardName: 'github-voucher', description: 'GitHub', icon: 'github' }],
-        ])
-      );
+    return raw
+      .replace(PREFIX_REGEX, '')
+      .split(REWARD_CONFIG.DELIMITER)
+      .filter(Boolean)
+      .join(REWARD_CONFIG.JOIN_SEPARATOR);
+  }
 
-      const mockContent: IContent = {
-        labels: ['rw:github-voucher'],
-      } as unknown as IContent;
+  /**
+   * Resuelve el nombre del icono final (añadiendo el prefijo icon- o mapeándolo de BRAND_ICON_MAP).
+   */
+  private static resolveIcon(iconName?: string): string {
+    if (!iconName) return REWARD_CONFIG.DEFAULT_ICON;
 
-      fixture.componentRef.setInput('$content', mockContent);
-      fixture.detectChanges();
+    const normalized = iconName.trim().toLowerCase();
 
-      expect(component.$webIconUrl()).toBe(
-        'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/github.svg'
-      );
-    });
-  });
+    // 1. Si coincide con una marca registrada en BRAND_ICON_MAP
+    if (BRAND_ICON_MAP[normalized]) {
+      return BRAND_ICON_MAP[normalized];
+    }
+
+    // 2. Si ya viene con el prefijo 'icon-'
+    if (normalized.startsWith(REWARD_CONFIG.ICON_PREFIX)) {
+      return normalized;
+    }
+
+    // 3. Fallback agregando el prefijo
+    return `${REWARD_CONFIG.ICON_PREFIX}${normalized}`;
+  }
+
+  private static findByTokens(
+    catalog: Map<string, IRewards>,
+    matchKey: string
+  ): IRewards | undefined {
+    if (!catalog || catalog.size === 0) return undefined;
+
+    const targetTokens = new Set(matchKey.split(REWARD_CONFIG.DELIMITER));
+
+    for (const [key, item] of catalog.entries()) {
+      const tokens = key.split(REWARD_CONFIG.DELIMITER);
+      // Coincidencia exacta de tokens para evitar falsos positivos
+      const isMatch = tokens.every((token) => targetTokens.has(token));
+      if (isMatch) return item;
+    }
+
+    return undefined;
+  }
+}
+
+import { Component, computed, inject, input } from '@angular/core';
+import { MarketplaceIssuesService } from './marketplace-issues.service';
+import { AdapterMarketplaceIssuesService } from './adapter-marketplace-issues.service';
+import { IContent } from './rewards.model';
+
+@Component({
+  selector: 'app-reward-badge',
+  templateUrl: './reward-badge.component.html',
+  standalone: true,
+  // imports: [NvIconModule, ...]
+})
+export class RewardBadgeComponent {
+  private readonly _issuesService = inject(MarketplaceIssuesService);
+
+  public readonly $content = input.required<IContent>();
+
+  public readonly $reward = computed(() =>
+    AdapterMarketplaceIssuesService.toViewModel(
+      this.$content()?.labels,
+      this._issuesService.$rewardsMap()
+    )
+  );
+}AdapterMarketplaceIssuesService
+
+<section class="bc-p-2 bc-flex bc-gap-2 bc-align-items-center">
+  <nv-icon 
+    [class]="$reward().icon" 
+    [size]="$reward().isVoluntary ? 'md' : 'sm'">
+  </nv-icon>
+
+  <div class="nv-display-flex nv-flex-direction-column">
+    <span class="bc-opensans-font-style-2-semibold bc-text-brand-primary-00">
+      {{ $reward().label }}
+    </span>
+
+    @if ($reward().isVoluntary) {
+      <span class="bc-opensans-font-style-2-regular bc-text-brand-primary-00">
+        (contribución voluntaria)
+      </span>
+    }
+  </div>
+</section>
