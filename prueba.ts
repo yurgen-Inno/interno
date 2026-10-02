@@ -206,45 +206,75 @@ describe('CardMarketplaceComponent', () => {
 });
 
 
-
-describe('Rewards Catalog & $rewardsMap', () => {
-  const mockApiRewards: IRewards[] = [
-    { rewardName: 'aws-voucher', description: 'AWS', icon: 'icon-cloud' },
-    { rewardName: 'github-voucher', description: 'Github', icon: 'icon-cat' }
+describe('getRewards', () => {
+  const rewardsUrl = `${environment.apiBaseUrl}catalog/api/v1/rewards`;
+  const mockRewards: IRewards[] = [
+    { rewardName: 'aws-voucher', description: 'AWS Voucher', icon: 'icon-cloud' },
+    { rewardName: 'github-voucher', description: 'GitHub Voucher', icon: 'icon-cat' },
   ];
-  const catalogUrl = `${environment.apiBaseUrl}catalog/api/v1/rewards`;
 
-  it('debe consultar getRewards() y emitir el arreglo de recompensas', (done) => {
-    // Si tu servicio tiene toSignal, este ya disparó la primera petición
-    httpMock.expectOne(catalogUrl).flush([]);
-
-    service.getRewards().subscribe((rewards) => {
-      expect(rewards).toEqual(mockApiRewards);
-      done();
+  it('should fetch the rewards from the correct endpoint', () => {
+    spectator.service.getRewards().subscribe(response => {
+      expect(response).toEqual(mockRewards);
+      expect(response.length).toBe(2);
     });
 
-    const req = httpMock.expectOne(catalogUrl);
+    const req = httpController.expectOne(rewardsUrl);
     expect(req.request.method).toBe('GET');
-    req.flush(mockApiRewards);
+    req.flush(mockRewards);
   });
 
-  it('debe poblar $rewardsMap indexado por clave normalizada tras resolver el endpoint', () => {
-    // Responde a la petición inicial disparada por toSignal al instanciar el servicio
-    const req = httpMock.expectOne(catalogUrl);
-    req.flush(mockApiRewards);
+  it('should handle an empty rewards response', () => {
+    spectator.service.getRewards().subscribe(response => {
+      expect(response).toEqual([]);
+    });
 
-    const map = service.$rewardsMap();
+    const req = httpController.expectOne(rewardsUrl);
+    req.flush([]);
+  });
+
+  it('should propagate an HTTP error', () => {
+    spectator.service.getRewards().subscribe({
+      error: err => {
+        expect(err.status).toBe(500);
+      },
+    });
+
+    const req = httpController.expectOne(rewardsUrl);
+    req.flush('Server error', {
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+  });
+});
+
+describe('$rewardsMap signal', () => {
+  const rewardsUrl = `${environment.apiBaseUrl}catalog/api/v1/rewards`;
+  const mockRewards: IRewards[] = [
+    { rewardName: 'aws-voucher', description: 'AWS Voucher', icon: 'icon-cloud' },
+    { rewardName: 'github-voucher', description: 'GitHub Voucher', icon: 'icon-cat' },
+  ];
+
+  it('should populate $rewardsMap indexed by normalized key when catalog is fetched', () => {
+    // Responde a la llamada que dispara toSignal al inicializar el servicio
+    const req = httpController.expectOne(rewardsUrl);
+    req.flush(mockRewards);
+
+    const map = spectator.service.$rewardsMap();
     expect(map.size).toBe(2);
+    expect(map.has('aws-voucher')).toBe(true);
     expect(map.get('aws-voucher')?.icon).toBe('icon-cloud');
-    expect(map.get('github-voucher')?.icon).toBe('icon-cat');
   });
 
-  it('debe manejar error HTTP en el catálogo y dejar $rewardsMap como Map vacío', () => {
+  it('should fallback to empty map in $rewardsMap on HTTP failure', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const req = httpMock.expectOne(catalogUrl);
-    req.error(new ProgressEvent('Network error'), { status: 500, statusText: 'Error' });
+    const req = httpController.expectOne(rewardsUrl);
+    req.flush('Network error', {
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
 
-    expect(service.$rewardsMap().size).toBe(0);
+    expect(spectator.service.$rewardsMap().size).toBe(0);
   });
 });
