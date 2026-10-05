@@ -1,125 +1,164 @@
-import { DestroyRef, ElementRef, inject, signal, Signal } from '@angular/core';
+import { DestroyRef, ElementRef, Signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import {
+  ELEMENT_WIDTH_DEFAULTS,
+  injectElementWidth,
+} from './element-width.util';
 
-export const ELEMENT_WIDTH_DEFAULTS = {
-  FALLBACK_WIDTH: 1200,
-  MIN_VALID_WIDTH: 0,
+const TEST_CONSTANTS = {
+  CUSTOM_FALLBACK_WIDTH: 800,
+  TARGET_RESIZE_WIDTH: 1024,
+  INVALID_WIDTH_ZERO: 0,
+  INVALID_WIDTH_NEGATIVE: -50,
 } as const;
 
-/**
- * Retorna un Signal de solo lectura con el ancho en px del elemento host.
- * Gestiona el ciclo de vida del ResizeObserver de forma automática usando DestroyRef.
- */
-export function injectElementWidth(
-  defaultWidth: number = ELEMENT_WIDTH_DEFAULTS.FALLBACK_WIDTH
-): Signal<number> {
-  const elementRef = inject(ElementRef);
-  const destroyRef = inject(DestroyRef);
-  const $width = signal<number>(defaultWidth);
+describe('injectElementWidth Utility', () => {
+  let mockElementRef: ElementRef;
+  let mockDestroyRef: { onDestroy: jest.Mock };
+  let mockResizeObserverInstance: {
+    observe: jest.Mock;
+    unobserve: jest.Mock;
+    disconnect: jest.Mock;
+  };
+  let resizeCallback: (entries: ResizeObserverEntry[]) => void;
 
-  // Early return si no existe ResizeObserver en el entorno de ejecución
-  if (typeof ResizeObserver === 'undefined') {
-    return $width.asReadonly();
-  }
+  beforeEach(() => {
+    mockElementRef = {
+      nativeElement: document.createElement('div'),
+    };
 
-  const resizeObserver = new ResizeObserver((entries: ResizeObserverEntry[]) => {
-    const primaryEntry = entries[0];
-    if (!primaryEntry) {
-      return;
-    }
+    mockDestroyRef = {
+      onDestroy: jest.fn(),
+    };
 
-    const calculatedWidth = Math.floor(primaryEntry.contentRect.width);
-    if (calculatedWidth <= ELEMENT_WIDTH_DEFAULTS.MIN_VALID_WIDTH) {
-      return;
-    }
+    mockResizeObserverInstance = {
+      observe: jest.fn(),
+      unobserve: jest.fn(),
+      disconnect: jest.fn(),
+    };
 
-    $width.set(calculatedWidth);
+    // Mock global de ResizeObserver capturando el callback interno
+    global.ResizeObserver = jest.fn().mockImplementation((callback) => {
+      resizeCallback = callback;
+      return mockResizeObserverInstance;
+    });
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ElementRef, useValue: mockElementRef },
+        { provide: DestroyRef, useValue: mockDestroyRef },
+      ],
+    });
   });
 
-  resizeObserver.observe(elementRef.nativeElement);
-
-  // Limpieza automática al destruir el componente
-  destroyRef.onDestroy(() => {
-    resizeObserver.disconnect();
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
-  return $width.asReadonly();
-}
+  it('debe inicializarse con el valor por defecto de ELEMENT_WIDTH_DEFAULTS', () => {
+    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
+      injectElementWidth()
+    );
 
-
-import { Component, computed, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { injectElementWidth } from '../../shared/utils/element-width.util';
-import { SUMMARY_CARD_CONSTANTS } from './dashboard-summary-card.constants';
-
-// Ajusta las rutas a tus interfaces reales
-import { IDashboardOverview } from '../../models/dashboard.interface';
-import { BcCardContentConfig } from '@bancolombia/design-system';
-
-@Component({
-  selector: 'app-dashboard-summary-card',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './dashboard-summary-card.component.html',
-  styleUrls: ['./dashboard-summary-card.component.scss'],
-})
-export class DashboardSummaryCardComponent {
-  // 1. Inyección reactiva y desacoplada del ancho
-  public readonly $containerWidth = injectElementWidth(SUMMARY_CARD_CONSTANTS.DEFAULT_WIDTH);
-
-  // 2. Input con alias para no romper la interfaz del padre
-  public readonly $headerData = input<IDashboardOverview['header']>(undefined, {
-    alias: 'headerData',
+    expect($width()).toBe(ELEMENT_WIDTH_DEFAULTS.FALLBACK_WIDTH);
   });
 
-  // 3. Computed que reacciona a los cambios de datos y de tamaño
-  public readonly $cardConfiguration = computed<BcCardContentConfig>(() => {
-    const data = this.$headerData();
-    const title = data?.title ?? SUMMARY_CARD_CONSTANTS.FALLBACK_TITLE;
-    const subtitle = data?.subtitle ?? '';
-    const cutoffDate = data?.cutoffDate ?? '';
-    const lastUpdated = data?.lastUpdated ?? SUMMARY_CARD_CONSTANTS.FALLBACK_LAST_UPDATED;
-    const descriptionText = `${subtitle}${SUMMARY_CARD_CONSTANTS.TEXT_SEPARATOR}${cutoffDate}`.trim();
+  it('debe inicializarse con un ancho personalizado cuando se suministra como argumento', () => {
+    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
+      injectElementWidth(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH)
+    );
 
-    return {
-      idCard: SUMMARY_CARD_CONSTANTS.CONFIG.ID,
-      isActionable: false,
-      widthCardContent: this.$containerWidth(),
-      cardPosition: SUMMARY_CARD_CONSTANTS.CONFIG.POSITION,
-      cardSize: SUMMARY_CARD_CONSTANTS.CONFIG.SIZE,
-      cardType: SUMMARY_CARD_CONSTANTS.CONFIG.TYPE,
-      iconFloat: SUMMARY_CARD_CONSTANTS.CONFIG.ICON_BOOK,
-      configurationIcon: {
-        icon: SUMMARY_CARD_CONSTANTS.CONFIG.ICON_BOOK,
-      },
-      status: {
-        color: SUMMARY_CARD_CONSTANTS.CONFIG.STATUS_COLOR,
-        text: lastUpdated,
-        type: SUMMARY_CARD_CONSTANTS.CONFIG.STATUS_TYPE,
-        customIcon: SUMMARY_CARD_CONSTANTS.CONFIG.ICON_INVESTMENT,
-        border: SUMMARY_CARD_CONSTANTS.CONFIG.STATUS_BORDER,
-      },
-      title: {
-        value: title,
-        typographyClass: '',
-      },
-      subtitle: {
-        value: subtitle,
-        typographyClass: '',
-      },
-      textDescription: {
-        value: descriptionText,
-        typographyClass: '',
-      },
-      additionalInfo: [],
-    } as BcCardContentConfig;
+    expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
   });
-}
+
+  it('debe registrar la observación del elemento nativo del host', () => {
+    TestBed.runInInjectionContext(() => injectElementWidth());
+
+    expect(global.ResizeObserver).toHaveBeenCalledTimes(1);
+    expect(mockResizeObserverInstance.observe).toHaveBeenCalledWith(
+      mockElementRef.nativeElement
+    );
+  });
+
+  it('debe actualizar el signal cuando ocurre un evento de resize válido', () => {
+    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
+      injectElementWidth()
+    );
+
+    const mockEntries = [
+      {
+        contentRect: { width: TEST_CONSTANTS.TARGET_RESIZE_WIDTH },
+      } as unknown as ResizeObserverEntry,
+    ];
+
+    resizeCallback(mockEntries);
+
+    expect($width()).toBe(TEST_CONSTANTS.TARGET_RESIZE_WIDTH);
+  });
+
+  it('no debe actualizar el signal si el ancho recibido es menor o igual a cero', () => {
+    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
+      injectElementWidth(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH)
+    );
+
+    const mockZeroEntry = [
+      {
+        contentRect: { width: TEST_CONSTANTS.INVALID_WIDTH_ZERO },
+      } as unknown as ResizeObserverEntry,
+    ];
+
+    resizeCallback(mockZeroEntry);
+    expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
+
+    const mockNegativeEntry = [
+      {
+        contentRect: { width: TEST_CONSTANTS.INVALID_WIDTH_NEGATIVE },
+      } as unknown as ResizeObserverEntry,
+    ];
+
+    resizeCallback(mockNegativeEntry);
+    expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
+  });
+
+  it('no debe actualizar el signal si la lista de entries llega vacía', () => {
+    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
+      injectElementWidth(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH)
+    );
+
+    resizeCallback([]);
+
+    expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
+  });
+
+  it('debe registrar el callback de desconexión en el DestroyRef y llamar a disconnect', () => {
+    TestBed.runInInjectionContext(() => injectElementWidth());
+
+    expect(mockDestroyRef.onDestroy).toHaveBeenCalledTimes(1);
+
+    // Ejecuta la función de limpieza que se pasó a destroyRef.onDestroy
+    const registeredCleanupCallback = mockDestroyRef.onDestroy.mock.calls[0][0];
+    registeredCleanupCallback();
+
+    expect(mockResizeObserverInstance.disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('debe retornar el fallback de inmediato si ResizeObserver es undefined (entornos SSR)', () => {
+    const originalResizeObserver = global.ResizeObserver;
+    // @ts-expect-error simulación de entorno sin ResizeObserver
+    delete global.ResizeObserver;
+
+    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
+      injectElementWidth(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH)
+    );
+
+    expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
+    expect(mockDestroyRef.onDestroy).not.toHaveBeenCalled();
+
+    global.ResizeObserver = originalResizeObserver;
+  });
+});
 
 
-<div class="summary-card-wrapper">
-  <cb-card-content [dataConfiguration]="$cardConfiguration()" />
-</div>
 
-
-<app-dashboard-summary-card [headerData]="$overviewData()?.header" />
-
+element-width.util.spec.ts
