@@ -1,113 +1,248 @@
-:host {
-  display: block;
-  width: 100%;
+import { CardPrimaryConfig } from '@bancolombia/design-system';
+import { ScoreStatus } from '../../models/dashboard.interface';
+
+export type CardPrimaryStatusColor = NonNullable<CardPrimaryConfig['componentStatus']>['color'];
+
+export interface ThresholdItem {
+  range: string;
+  level: string;
+  statusKey: ScoreStatus;
 }
 
-.cards-layout {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+export const DASHBOARD_CARDS_CONSTANTS = {
+  EMPTY_STRING: '',
+  STATUS_COLORS: {
+    EXCELLENT: 'status-success-3',
+    GOOD: 'status-info-3',
+    REGULAR: 'status-alert-3',
+    CRITICAL: 'status-error-3',
+    DEFAULT: 'status-neutral-3',
+  },
+  TOP_CARD: {
+    ID: 'top-summary-card',
+    TITLE: 'Card Content Works!',
+    SUBTITLE: 'Subtitle text',
+    DESCRIPTION: 'Text paragraph with different extension. Here you can use one or more text lines.',
+    ICON: 'icon-book-2',
+    ARIAL_LABEL: 'arial label icon',
+    CARD_SIZE: 'small',
+    CARD_POSITION: 'horizontal',
+    CARD_TYPE: 'card-icon',
+  },
+  BOTTOM_CARD: {
+    ID: 'bottom-target-card',
+    TITLE: 'Valor objetivo',
+    DESCRIPTION: 'Rangos porcentuales de cumplimiento establecidos según el objetivo anual.',
+    ICON: 'podcast',
+    ARIAL_LABEL: 'arial label icon',
+    CARD_SIZE: 'small',
+    CARD_POSITION: 'horizontal',
+    CARD_TYPE: 'card-icon',
+    STATUS_TEXT: 'Objetivo',
+    STATUS_COLOR: 'status-success-3',
+    STATUS_TYPE: 'only',
+    STATUS_ICON: 'icon-investment',
+    STATUS_BORDER: 'center',
+    DEFAULT_THRESHOLDS: [
+      { range: '0% - 30%', level: 'Crítico', statusKey: 'CRITICAL' },
+      { range: '31% - 50%', level: 'Malo', statusKey: 'BAD' },
+      { range: '51% - 70%', level: 'Regular', statusKey: 'REGULAR' },
+      { range: '71% - 85%', level: 'Bueno', statusKey: 'GOOD' },
+      { range: '86% - 100%', level: 'Excelente', statusKey: 'EXCELLENT' },
+    ] as ThresholdItem[],
+  },
+  KPI_CONFIG: {
+    VARIANT: 'new-product',
+    TYPE_ICON: 'icon',
+    BORDER_COLOR_CLASS: 'status-info-1',
+    ALIGN_LEFT: 'left',
+    STATUS_TYPE: 'only',
+    STATUS_BORDER: 'center',
+    TITLE_SEPARATOR: ' • ',
+  },
+} as const;
 
-  .card-row {
-    display: flex;
-    width: 100%;
+export const STATUS_COLOR_MAP: Record<ScoreStatus, CardPrimaryStatusColor> = {
+  EXCELLENT: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.EXCELLENT,
+  GOOD: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.GOOD,
+  REGULAR: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.REGULAR,
+  BAD: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.CRITICAL,
+  CRITICAL: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.CRITICAL,
+  IN_DEVELOPMENT: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.DEFAULT,
+};
 
-    cb-card-content {
-      display: block;
-      width: 100%;
-    }
 
-    // Estilos para la card superior con fondo azul
-    &--top {
-      cb-card-content {
-        // Variables CSS de Bancolombia Design System para penetrar Shadow DOM
-        --bc-card-background-color: #002f6c;
-        --bc-card-bg: #002f6c;
-        --card-background: #002f6c;
-        --background-color: #002f6c;
+import { Component, computed, input } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
-        // Variables para títulos y textos en blanco/claro
-        --bc-card-title-color: #ffffff;
-        --bc-card-subtitle-color: #e2e8f0;
-        --bc-card-text-color: #cbd5e1;
-        --bc-icon-color: #ffffff;
+import { injectElementWidth } from '../../shared/utils/card-width-util/element-width.util';
+import { IDashboardOverview, ScoreStatus } from '../../models/dashboard.interface';
+import { BcCardContentConfig, CardPrimaryConfig } from '@bancolombia/design-system';
+import {
+  CardPrimaryStatusColor,
+  DASHBOARD_CARDS_CONSTANTS,
+  STATUS_COLOR_MAP,
+  ThresholdItem,
+} from './dashboards-cards.constants';
 
-        // Sobrescritura en caso de renderizado en DOM regular
-        ::ng-deep {
-          .bc-card-content,
-          .bc-card-container,
-          .card-content-wrapper {
-            background-color: #002f6c !important;
-            border-color: #002452 !important;
+@Component({
+  selector: 'app-dashboards-cards',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './dashboards-cards.component.html',
+  styleUrls: ['./dashboards-cards.component.scss'],
+})
+export class DashboardsCardsComponent {
+  public readonly $containerWidth = injectElementWidth();
 
-            h1, h2, h3, h4, h5, h6,
-            .bc-card-title,
-            .card-title {
-              color: #ffffff !important;
-            }
+  public readonly $cards = input<IDashboardOverview['kpiCards'] | undefined>([], {
+    alias: 'cards',
+  });
 
-            p, span,
-            .bc-card-subtitle,
-            .card-description {
-              color: #e2e8f0 !important;
-            }
+  // Recibe los umbrales de la API si están disponibles
+  public readonly $thresholds = input<ThresholdItem[] | undefined>(undefined, {
+    alias: 'thresholds',
+  });
 
-            bc-icon, cb-icon, svg {
-              fill: #ffffff !important;
-              color: #ffffff !important;
-            }
-          }
-        }
-      }
-    }
-  }
+  public readonly $topCardConfiguration = computed<BcCardContentConfig>(() => ({
+    idCard: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ID,
+    isActionable: false,
+    widthCardContent: this.$containerWidth(),
+    cardPosition: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.CARD_POSITION,
+    cardSize: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.CARD_SIZE,
+    cardType: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.CARD_TYPE,
+    iconFloat: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ICON,
+    configurationPhoto: {
+      urlPhoto: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+      altPhoto: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+    },
+    configurationIllustration: {
+      name: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+      alt: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+    },
+    configurationIcon: {
+      icon: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ICON,
+      arialLabel: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ARIAL_LABEL,
+    },
+    title: {
+      value: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.TITLE,
+      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+    },
+    subtitle: {
+      value: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.SUBTITLE,
+      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+    },
+    textDescription: {
+      value: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.DESCRIPTION,
+      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+    },
+  } as BcCardContentConfig));
 
-  // Grid central preservando tus estilos exactos
-  .cards-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    width: 100%;
-    margin-top: 16px;
-    margin-bottom: 24px;
+  // Configuración de la card inferior mapeando los 5 rangos en additionalInfo
+  public readonly $bottomCardConfiguration = computed<BcCardContentConfig>(() => {
+    const activeThresholds =
+      this.$thresholds() && this.$thresholds()!.length > 0
+        ? this.$thresholds()!
+        : DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.DEFAULT_THRESHOLDS;
 
-    &__item {
-      position: relative;
-      display: flex;
-      width: 100%;
-      background-color: #ffffff;
-      border-radius: 8px;
-      border: 1px solid #e0e0e0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-      overflow: hidden;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    const mappedAdditionalInfo = activeThresholds.map((threshold) => ({
+      status: {
+        color: this.mapStatusColor(threshold.statusKey),
+        text: `${threshold.range} ${threshold.level}`,
+        type: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_TYPE,
+        border: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_BORDER,
+      },
+    }));
 
-      &:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        cursor: pointer;
-      }
+    return {
+      idCard: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ID,
+      isActionable: false,
+      widthCardContent: this.$containerWidth(),
+      cardPosition: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.CARD_POSITION,
+      cardSize: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.CARD_SIZE,
+      cardType: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.CARD_TYPE,
+      iconFloat: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ICON,
+      configurationPhoto: {
+        urlPhoto: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+        altPhoto: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+      },
+      configurationIllustration: {
+        name: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+        alt: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+      },
+      configurationIcon: {
+        icon: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ICON,
+        arialLabel: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ARIAL_LABEL,
+      },
+      title: {
+        value: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.TITLE,
+        typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+      },
+      textDescription: {
+        value: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.DESCRIPTION,
+        typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+      },
+      // Insertamos los 5 rangos con sus badges de colores:
+      additionalInfo: mappedAdditionalInfo,
+    } as BcCardContentConfig;
+  });
 
-      &::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        background-color: #59cbe8;
-        z-index: 2;
-      }
+  public readonly $cardsConfigurations = computed<CardPrimaryConfig[]>(() => {
+    const items = this.$cards() ?? [];
 
-      cb-card-primary {
-        width: 100%;
-        background: transparent;
-        border: none;
-      }
-    }
+    return items.map((item, index) => {
+      const displayTitle = item.scoreDisplay
+        ? `${item.title}${DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.TITLE_SEPARATOR}${item.scoreDisplay}`
+        : item.title;
+
+      return {
+        variant: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.VARIANT,
+        typeIcon: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.TYPE_ICON,
+        classColorBorder: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.BORDER_COLOR_CLASS,
+        borderColor: true,
+        infoAccount: {
+          title: displayTitle,
+          subtitle: item.description,
+          titleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          subtitleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textOneTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textTwoTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textThreeTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+        },
+        subInfoAccount: {
+          title: displayTitle,
+          subtitle: item.description,
+          titleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          subtitleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textOneTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textTwoTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textThreeTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+        },
+        dataOne: {
+          titleData: item.rangeLabel,
+          data: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textAlign: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.ALIGN_LEFT,
+          iconFranchise: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          titleDataTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          dataTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+        },
+        componentStatus: {
+          type: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.STATUS_TYPE,
+          color: this.mapStatusColor(item.status),
+          border: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.STATUS_BORDER,
+          text: item.statusLabel,
+        },
+      } as CardPrimaryConfig;
+    });
+  });
+
+  private mapStatusColor(status: ScoreStatus): CardPrimaryStatusColor {
+    return STATUS_COLOR_MAP[status] ?? DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.DEFAULT;
   }
 }
 
 
-<div class="card-row card-row--top">
-  <cb-card-content [dataConfiguration]="$topCardConfiguration()" />
-</div>
+<app-dashboards-cards 
+  [cards]="$overviewData()?.kpiCards ?? []" 
+  [thresholds]="$overviewData()?.scoreThresholds" 
+/>
