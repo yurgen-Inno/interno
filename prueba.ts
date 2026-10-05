@@ -14,7 +14,6 @@ const TEST_CONSTANTS = {
 
 describe('injectElementWidth Utility', () => {
   let mockElementRef: ElementRef;
-  let mockDestroyRef: { onDestroy: jest.Mock };
   let mockResizeObserverInstance: {
     observe: jest.Mock;
     unobserve: jest.Mock;
@@ -27,17 +26,12 @@ describe('injectElementWidth Utility', () => {
       nativeElement: document.createElement('div'),
     };
 
-    mockDestroyRef = {
-      onDestroy: jest.fn(),
-    };
-
     mockResizeObserverInstance = {
       observe: jest.fn(),
       unobserve: jest.fn(),
       disconnect: jest.fn(),
     };
 
-    // Mock global de ResizeObserver capturando el callback interno
     global.ResizeObserver = jest.fn().mockImplementation((callback) => {
       resizeCallback = callback;
       return mockResizeObserverInstance;
@@ -46,14 +40,13 @@ describe('injectElementWidth Utility', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: ElementRef, useValue: mockElementRef },
-        { provide: DestroyRef, useValue: mockDestroyRef },
       ],
     });
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks();
+    TestBed.resetTestingModule();
   });
 
   it('debe inicializarse con el valor por defecto de ELEMENT_WIDTH_DEFAULTS', () => {
@@ -131,15 +124,20 @@ describe('injectElementWidth Utility', () => {
     expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
   });
 
-  it('debe registrar el callback de desconexión en el DestroyRef y llamar a disconnect', () => {
+  it('debe llamar a disconnect del ResizeObserver al destruirse el contexto de inyección', () => {
+    // Obtenemos el DestroyRef real de Angular y espiamos su método onDestroy
+    const destroyRef = TestBed.inject(DestroyRef);
+    const onDestroySpy = jest.spyOn(destroyRef, 'onDestroy');
+
     TestBed.runInInjectionContext(() => injectElementWidth());
 
-    expect(mockDestroyRef.onDestroy).toHaveBeenCalledTimes(1);
+    // 1. Verifica que injectElementWidth registró el callback
+    expect(onDestroySpy).toHaveBeenCalledTimes(1);
 
-    // Ejecuta la función de limpieza que se pasó a destroyRef.onDestroy
-    const registeredCleanupCallback = mockDestroyRef.onDestroy.mock.calls[0][0];
-    registeredCleanupCallback();
+    // 2. Al resetear/destruir el entorno de pruebas, se dispara la limpieza registrada
+    TestBed.resetTestingModule();
 
+    // 3. Verifica que la desconexión se ejecutó
     expect(mockResizeObserverInstance.disconnect).toHaveBeenCalledTimes(1);
   });
 
@@ -148,17 +146,16 @@ describe('injectElementWidth Utility', () => {
     // @ts-expect-error simulación de entorno sin ResizeObserver
     delete global.ResizeObserver;
 
+    const destroyRef = TestBed.inject(DestroyRef);
+    const onDestroySpy = jest.spyOn(destroyRef, 'onDestroy');
+
     const $width: Signal<number> = TestBed.runInInjectionContext(() =>
       injectElementWidth(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH)
     );
 
     expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
-    expect(mockDestroyRef.onDestroy).not.toHaveBeenCalled();
+    expect(onDestroySpy).not.toHaveBeenCalled();
 
     global.ResizeObserver = originalResizeObserver;
   });
 });
-
-
-
-element-width.util.spec.ts
