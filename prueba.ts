@@ -9,21 +9,34 @@
   }
 
   .thresholds-row {
-    position: absolute;
-    right: 24px;
-    top: 50%;
-    transform: translateY(-50%);
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     z-index: 2;
-    pointer-events: none; // Permite clicks a través si fuera necesario
+
+    /* En pantallas de escritorio / pantallas grandes: flotan dentro de la tarjeta */
+    @media (min-width: 992px) {
+      position: absolute;
+      left: 64px;
+      bottom: 14px;
+      padding-right: 24px;
+      pointer-events: none;
+    }
+
+    /* En tablets y móviles (cuando el texto ocupa más líneas o no cabe en una fila) */
+    @media (max-width: 991px) {
+      position: static;
+      margin-top: 10px;
+      padding-left: 16px;
+      padding-bottom: 8px;
+    }
 
     .threshold-badge {
       display: inline-flex;
       align-items: center;
-      padding: 4px 10px;
-      border-radius: 16px;
+      padding: 3px 10px;
+      border-radius: 12px;
       font-size: 11px;
       font-weight: 600;
       white-space: nowrap;
