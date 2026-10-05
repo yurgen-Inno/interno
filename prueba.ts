@@ -2,9 +2,8 @@ import { Component, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
-// Importa los componentes UI del design system registrados en tu proyecto
-// Asegúrate de importar CbInputSearch, CbInputSelect, CbInputDate, CbButton, CbIcon
-// Si usas CbModule o componentes individuales, agrégalos al array 'imports'
+// Importa aquí los componentes de la librería de UI si son Standalone
+// (por ejemplo: CbInputSearch, CbInputSelect, CbInputDate, CbButton, CbIcon)
 
 export interface IDashboardFilters {
   search: string;
@@ -17,8 +16,11 @@ export interface IDashboardFilters {
 @Component({
   selector: 'app-dashboard-filters',
   standalone: true,
-  // ReactiveFormsModule soluciona el error NG8002 de [formGroup]
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    // CbInputSearch, CbInputSelect, CbInputDate, CbButton, CbIcon // <- Descomenta e importa según tu librería
+  ],
   templateUrl: './dashboard-filters.component.html',
   styleUrls: ['./dashboard-filters.component.scss'],
 })
@@ -35,7 +37,7 @@ export class DashboardFiltersComponent {
 
   public dateControl = new FormControl(null, Validators.required);
 
-  // Configuración de búsqueda con tipado literal estricto
+  // 1. Tipado estricto con 'as const' para que no infiera 'string'
   public readonly searchConfig = {
     idInput: 'ClientSide',
     type: 'text' as const,
@@ -43,7 +45,7 @@ export class DashboardFiltersComponent {
     disabled: false,
   };
 
-  // Configuración completa para cb-input-select (sin necesidad de HTML interno)
+  // 2. Tipado estricto con 'as const' al final del objeto
   public readonly selectPillarConfig = {
     idInput: 'products-input-select',
     label: 'Seleccione un pilar',
@@ -61,7 +63,7 @@ export class DashboardFiltersComponent {
     disabled: false,
     placeholder: 'Seleccione una opción',
     disableOptionValidation: true,
-    typology: 'outline',
+    typology: 'outline' as const, // Requiere literal 'outline'
     enabledIconSuccess: false,
     enabledIconError: false,
     required: false,
@@ -70,10 +72,10 @@ export class DashboardFiltersComponent {
     isShowNeutral: true,
   };
 
-  // Configuración para el componente de fecha
+  // 3. Tipado estricto con 'as const'
   public readonly inputDateConfig = {
     helpText: 'Ej: 01 - enero - 1999',
-    typology: 'outline',
+    typology: 'outline' as const, // Requiere literal 'outline'
     disabled: false,
     enabledIconError: true,
     enabledIconSuccess: true,
@@ -108,53 +110,3 @@ export class DashboardFiltersComponent {
   public onValueChanged(event: unknown): void {}
   public filterAccounts(event: unknown): void {}
 }
-
-
-
-<form [formGroup]="filterForm" (ngSubmit)="submitFilters()" class="dashboard-filters">
-
-  <!-- 1. Búsqueda -->
-  <div class="dashboard-filters__field dashboard-filters__field--search">
-    <cb-input-search
-      [configInputSearch]="searchConfig"
-      [items]="[]"
-      [placeholder]="'Buscar EVC'"
-      [emptyItem]="{ title: 'No se encontraron resultados' }"
-      [isPredictiveMenuEnabled]="false"
-      [historyItems]="[]"
-      [itemTextHistory]="{ title: 'Recientes' }"
-      [loading]="false"
-      [isDefaultPlaceholder]="false"
-      (selected)="handleSelected($event)"
-    />
-  </div>
-
-  <!-- 2. Selector de Pilar (Autosuficiente con floatMenuConfig) -->
-  <div class="dashboard-filters__field dashboard-filters__field--select">
-    <cb-input-select
-      [inputSelectFieldConfig]="selectPillarConfig"
-      variant="default"
-      (valueChanged)="onValueChanged($event)"
-      (filterChanged)="filterAccounts($event)"
-    />
-  </div>
-
-  <!-- 3. Fechas -->
-  <div class="dashboard-filters__field dashboard-filters__field--date">
-    <cb-input-date [inputDateConfig]="inputDateConfig" />
-  </div>
-
-  <!-- 4. Botón Aplicar Filtros -->
-  <div class="dashboard-filters__actions">
-    <cb-button
-      typeButton="primary"
-      sizeButton="default"
-      width="hug"
-      [disabled]="false"
-    >
-      <cb-icon fontIcon="filter" />
-      Aplicar Filtros
-    </cb-button>
-  </div>
-
-</form>
