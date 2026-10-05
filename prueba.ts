@@ -1,106 +1,107 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { BaseChartDirective } from 'ng2-charts';
-import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
+.table-content {
+  background-color: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  margin-top: 24px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #2b2b2b;
 
-interface PilarItem {
-  nombre: string;
-  valor: number | null;
-  estado: 'Excelente' | 'Bueno' | 'Regular' | 'En desarrollo';
-  color: string;
-}
+  .header {
+    margin-bottom: 20px;
 
-@Component({
-  selector: 'app-pilares-chart',
-  standalone: true,
-  imports: [CommonModule, BaseChartDirective],
-  templateUrl: './pilares-chart.component.html',
-  styleUrls: ['./pilares-chart.component.scss']
-})
-export class PilaresChartComponent {
-  public chartType: ChartType = 'bar';
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
 
-  items: PilarItem[] = [
-    { nombre: 'Pilar 1', valor: 79, estado: 'Bueno', color: '#00c389' },
-    { nombre: 'Pilar 2', valor: 81, estado: 'Excelente', color: '#00c389' },
-    { nombre: 'Pilar 3', valor: 79, estado: 'Bueno', color: '#00c389' },
-    { nombre: 'Pilar 4', valor: 47, estado: 'Regular', color: '#f59e0b' },
-    { nombre: 'Pilar 5', valor: 46, estado: 'Regular', color: '#f59e0b' },
-    { nombre: 'Pilar 6', valor: null, estado: 'En desarrollo', color: '#9ca3af' },
-  ];
+      .icon {
+        font-size: 16px;
+        color: #616161;
+      }
 
-  public barOptions: ChartConfiguration['options'] = {
-    indexAxis: 'y',
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: { enabled: false }
-    },
-    scales: {
-      x: {
-        stacked: true,
-        display: false,
-        min: 0,
-        max: 100
-      },
-      y: {
-        stacked: true,
-        display: false
+      h3 {
+        font-size: 15px;
+        font-weight: 700;
+        margin: 0;
+        color: #212529;
       }
     }
-  };
 
-  getChartData(item: PilarItem): ChartData<'bar'> {
-    const progreso = item.valor ?? 0;
-    const fondo = 100 - progreso;
-
-    return {
-      labels: [''],
-      datasets: [
-        {
-          data: [progreso],
-          backgroundColor: item.color,
-          barThickness: 5,
-          borderRadius: 3,
-          stack: 'bar'
-        },
-        {
-          data: [fondo],
-          backgroundColor: '#262930', // Gris oscuro de fondo de la barra
-          barThickness: 5,
-          borderRadius: 3,
-          stack: 'bar'
-        }
-      ]
-    };
+    .subtitle {
+      font-size: 12px;
+      color: #757575;
+      margin: 4px 0 0 0;
+    }
   }
 
-  getBadgeClass(estado: string): string {
-    switch (estado) {
-      case 'Excelente':
-      case 'Bueno':
-        return 'badge-green';
-      case 'Regular':
-        return 'badge-yellow';
-      default:
-        return 'badge-gray';
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .item {
+      display: flex;
+      flex-direction: column;
+
+      .info-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+        margin-bottom: 4px;
+
+        .name {
+          font-weight: 500;
+          min-width: 140px;
+          color: #333333;
+        }
+
+        .value {
+          font-weight: 600;
+          color: #424242;
+          min-width: 55px;
+        }
+
+        .badge {
+          font-size: 11px;
+          font-weight: 500;
+          padding: 2px 10px;
+          border-radius: 12px;
+
+          &.badge-green {
+            background-color: #e8f5e9;
+            color: #1b5e20;
+            border: 1px solid #c8e6c9;
+          }
+
+          &.badge-yellow {
+            background-color: #fff9c4;
+            color: #827717;
+            border: 1px solid #fff59d;
+          }
+
+          &.badge-gray {
+            background-color: #f5f5f5;
+            color: #616161;
+            border: 1px solid #e0e0e0;
+          }
+        }
+      }
+
+      .bar-container {
+        height: 6px;
+        width: 100%;
+      }
     }
   }
 }
 
 
 
-
-
-
-
-
-
-
-
-
-<div class="card">
+<div class="table-content">
   <div class="header">
     <div class="title-row">
       <span class="icon">☺</span>
@@ -130,105 +131,3 @@ export class PilaresChartComponent {
     </div>
   </div>
 </div>
-
-
-
-
-
-
-
-
-.card {
-  background-color: #f7f9fb;
-  border-radius: 8px;
-  padding: 24px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #212529;
-
-  .header {
-    margin-bottom: 20px;
-
-    .title-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      .icon {
-        font-size: 16px;
-      }
-
-      h3 {
-        font-size: 15px;
-        font-weight: 700;
-        margin: 0;
-      }
-    }
-
-    .subtitle {
-      font-size: 12px;
-      color: #6c757d;
-      margin: 4px 0 0 0;
-    }
-  }
-
-  .list {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-
-    .item {
-      display: flex;
-      flex-direction: column;
-
-      .info-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 12.5px;
-        margin-bottom: 4px;
-
-        .name {
-          font-weight: 500;
-          min-width: 140px;
-          color: #374151;
-        }
-
-        .value {
-          font-weight: 600;
-          color: #4b5563;
-          min-width: 55px;
-        }
-
-        .badge {
-          font-size: 11px;
-          font-weight: 500;
-          padding: 1px 10px;
-          border-radius: 12px;
-
-          &.badge-green {
-            background-color: #d1fae5;
-            color: #065f46;
-            border: 1px solid #a7f3d0;
-          }
-
-          &.badge-yellow {
-            background-color: #fef3c7;
-            color: #92400e;
-            border: 1px solid #fde68a;
-          }
-
-          &.badge-gray {
-            background-color: #e5e7eb;
-            color: #374151;
-            border: 1px solid #d1d5db;
-          }
-        }
-      }
-
-      .bar-container {
-        height: 6px;
-        width: 100%;
-      }
-    }
-  }
-}
