@@ -1,158 +1,113 @@
-import { Component, computed, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+:host {
+  display: block;
+  width: 100%;
+}
 
-// Ajusta las rutas según la estructura de tu proyecto
-import { injectElementWidth } from '../../shared/utils/card-width-util/element-width.util';
-import { IDashboardOverview, ScoreStatus } from '../../models/dashboard.interface';
-import { BcCardContentConfig, CardPrimaryConfig } from '@bancolombia/design-system';
-import {
-  CardPrimaryStatusColor,
-  DASHBOARD_CARDS_CONSTANTS,
-  STATUS_COLOR_MAP,
-} from './dashboards-cards.constants';
+.cards-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 
-@Component({
-  selector: 'app-dashboards-cards',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './dashboards-cards.component.html',
-  styleUrls: ['./dashboards-cards.component.scss'],
-})
-export class DashboardsCardsComponent {
-  // Ancho dinámico del contenedor calculado mediante el utilitario reactivo
-  public readonly $containerWidth = injectElementWidth();
+  .card-row {
+    display: flex;
+    width: 100%;
 
-  // Input de tarjetas KPI con alias para mantener compatibilidad con el template padre
-  public readonly $cards = input<IDashboardOverview['kpiCards'] | undefined>([], {
-    alias: 'cards',
-  });
+    cb-card-content {
+      display: block;
+      width: 100%;
+    }
 
-  // Configuración de la card superior
-  public readonly $topCardConfiguration = computed<BcCardContentConfig>(() => ({
-    idCard: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ID,
-    isActionable: false,
-    widthCardContent: this.$containerWidth(),
-    cardPosition: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.CARD_POSITION,
-    cardSize: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.CARD_SIZE,
-    cardType: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.CARD_TYPE,
-    iconFloat: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ICON,
-    configurationPhoto: {
-      urlPhoto: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-      altPhoto: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-    },
-    configurationIllustration: {
-      name: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-      alt: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-    },
-    configurationIcon: {
-      icon: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ICON,
-      arialLabel: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ARIAL_LABEL,
-    },
-    title: {
-      value: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.TITLE,
-      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-    },
-    subtitle: {
-      value: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.SUBTITLE,
-      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-    },
-    textDescription: {
-      value: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.DESCRIPTION,
-      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-    },
-  } as BcCardContentConfig));
+    // Estilos para la card superior con fondo azul
+    &--top {
+      cb-card-content {
+        // Variables CSS de Bancolombia Design System para penetrar Shadow DOM
+        --bc-card-background-color: #002f6c;
+        --bc-card-bg: #002f6c;
+        --card-background: #002f6c;
+        --background-color: #002f6c;
 
-  // Configuración de la card inferior (Valor Objetivo)
-  public readonly $bottomCardConfiguration = computed<BcCardContentConfig>(() => ({
-    idCard: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ID,
-    isActionable: false,
-    widthCardContent: this.$containerWidth(),
-    cardPosition: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.CARD_POSITION,
-    cardSize: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.CARD_SIZE,
-    cardType: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.CARD_TYPE,
-    iconFloat: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ICON,
-    configurationPhoto: {
-      urlPhoto: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-      altPhoto: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-    },
-    configurationIllustration: {
-      name: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-      alt: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-    },
-    configurationIcon: {
-      icon: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ICON,
-      arialLabel: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ARIAL_LABEL,
-    },
-    title: {
-      value: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.TITLE,
-      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-    },
-    textDescription: {
-      value: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.DESCRIPTION,
-      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-    },
-    status: {
-      color: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_COLOR,
-      text: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_TEXT,
-      type: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_TYPE,
-      customIcon: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_ICON,
-      border: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_BORDER,
-    },
-  } as BcCardContentConfig));
+        // Variables para títulos y textos en blanco/claro
+        --bc-card-title-color: #ffffff;
+        --bc-card-subtitle-color: #e2e8f0;
+        --bc-card-text-color: #cbd5e1;
+        --bc-icon-color: #ffffff;
 
-  // Configuración reactiva del arreglo de tarjetas KPI centrales
-  public readonly $cardsConfigurations = computed<CardPrimaryConfig[]>(() => {
-    const items = this.$cards() ?? [];
+        // Sobrescritura en caso de renderizado en DOM regular
+        ::ng-deep {
+          .bc-card-content,
+          .bc-card-container,
+          .card-content-wrapper {
+            background-color: #002f6c !important;
+            border-color: #002452 !important;
 
-    return items.map((item, index) => {
-      const displayTitle = item.scoreDisplay
-        ? `${item.title}${DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.TITLE_SEPARATOR}${item.scoreDisplay}`
-        : item.title;
+            h1, h2, h3, h4, h5, h6,
+            .bc-card-title,
+            .card-title {
+              color: #ffffff !important;
+            }
 
-      return {
-        id: `kpi-card-${item.id || index}`,
-        variant: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.VARIANT,
-        typeIcon: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.TYPE_ICON,
-        classColorBorder: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.BORDER_COLOR_CLASS,
-        borderColor: true,
-        infoAccount: {
-          title: displayTitle,
-          subtitle: item.description,
-          titleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          subtitleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          textOneTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          textTwoTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          textThreeTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-        },
-        subInfoAccount: {
-          title: displayTitle,
-          subtitle: item.description,
-          titleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          subtitleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          textOneTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          textTwoTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          textThreeTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-        },
-        dataOne: {
-          titleData: item.rangeLabel,
-          data: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          textAlign: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.ALIGN_LEFT,
-          iconFranchise: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          titleDataTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-          dataTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
-        },
-        componentStatus: {
-          type: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.STATUS_TYPE,
-          color: this.mapStatusColor(item.status),
-          border: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.STATUS_BORDER,
-          text: item.statusLabel,
-        },
-      } as CardPrimaryConfig;
-    });
-  });
+            p, span,
+            .bc-card-subtitle,
+            .card-description {
+              color: #e2e8f0 !important;
+            }
 
-  // Mapeo sin complejidad ciclomática tipado estrictamente contra la interfaz de la librería
-  private mapStatusColor(status: ScoreStatus): CardPrimaryStatusColor {
-    return STATUS_COLOR_MAP[status] ?? DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.DEFAULT;
+            bc-icon, cb-icon, svg {
+              fill: #ffffff !important;
+              color: #ffffff !important;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Grid central preservando tus estilos exactos
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    margin-top: 16px;
+    margin-bottom: 24px;
+
+    &__item {
+      position: relative;
+      display: flex;
+      width: 100%;
+      background-color: #ffffff;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        cursor: pointer;
+      }
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background-color: #59cbe8;
+        z-index: 2;
+      }
+
+      cb-card-primary {
+        width: 100%;
+        background: transparent;
+        border: none;
+      }
+    }
   }
 }
+
+
+<div class="card-row card-row--top">
+  <cb-card-content [dataConfiguration]="$topCardConfiguration()" />
+</div>
