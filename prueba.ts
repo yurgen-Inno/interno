@@ -1,11 +1,15 @@
 export const DASHBOARD_FILTERS_CONSTANTS = {
   SEARCH_CONFIG: {
     idInput: 'ClientSide',
-    type: 'text',
-    typology: 'outline',
+    type: 'text' as const,
+    typology: 'outline' as const,
     disabled: false,
     placeholder: 'Buscar EVC',
+    items: [],
+    emptyItem: { title: 'No se encontraron resultados' },
     isPredictiveMenuEnabled: false,
+    historyItems: [],
+    itemTextHistory: { title: 'Recientes' },
     loading: false,
     isDefaultPlaceholder: false,
   },
@@ -13,26 +17,36 @@ export const DASHBOARD_FILTERS_CONSTANTS = {
     idInput: 'products-input-select',
     label: 'Seleccione un pilar',
     icon: 'map',
-    placeholder: 'Seleccione una opción',
-    typology: 'outline',
+    helpText: 'Este es un texto de ayuda para el input select',
+    autocomplete: 'off',
+    floatMenuConfig: {
+      items: [
+        { title: 'Pilar 1', value: '1' },
+        { title: 'Pilar 2', value: '2' },
+      ],
+      numberPreloaders: 1,
+    },
+    blockedCopyPaste: false,
     disabled: false,
-    items: [
-      { title: 'Pilar 1', value: '1' },
-      { title: 'Pilar 2', value: '2' },
-    ],
+    placeholder: 'Seleccione una opción',
+    disableOptionValidation: true,
+    typology: 'outline',
+    enabledIconSuccess: false,
+    enabledIconError: false,
+    required: false,
+    enableAgnosticSearch: true,
+    enableFiltering: true,
+    isShowNeutral: true,
   },
   DATE_CONFIG: {
     helpText: 'Ej: 01 - enero - 1999',
     typology: 'outline',
     disabled: false,
-    enabledIconError: false,
-    enabledIconSuccess: false,
+    enabledIconError: true,
+    enabledIconSuccess: true,
     showDay: true,
     showMonth: true,
     showYear: true,
-    day: { label: 'Día', placeholder: 'DD', disabled: false, icon: 'calendar' },
-    month: { label: 'Mes', placeholder: 'MM', disabled: false, icon: 'calendar' },
-    year: { label: 'Año', placeholder: 'AAAA', disabled: false, icon: 'calendar' },
   },
   BUTTON_CONFIG: {
     TEXT: 'Aplicar Filtros',
@@ -45,43 +59,60 @@ export const DASHBOARD_FILTERS_CONSTANTS = {
 
 
 
-
 import { Component, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+
+// Componentes del Design System de Bancolombia
+import {
+  BcButtonComponent,
+  BcIconComponent,
+  BcInputDateComponent,
+  BcInputSearchComponent,
+  BcInputSelectComponent,
+} from '@bancolombia/design-system';
+
 import { DASHBOARD_FILTERS_CONSTANTS } from './dashboard-filters.constants';
-import { IDashboardFilters } from '../../models/dashboard.interface'; // Ajusta la ruta a tu modelo
+import { IDashboardFilters } from '../../models/dashboard.interface';
 
 @Component({
   selector: 'app-dashboard-filters',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule, // Resuelve el error NG8002 de [formGroup]
+    BcInputSearchComponent,
+    BcInputSelectComponent,
+    BcInputDateComponent,
+    BcButtonComponent,
+    BcIconComponent,
+  ],
   templateUrl: './dashboard-filters.component.html',
   styleUrls: ['./dashboard-filters.component.scss'],
 })
 export class DashboardFiltersComponent {
   public filterChange = output<Partial<IDashboardFilters>>();
 
-  // Configuraciones reactivas
   public readonly $searchConfig = signal(DASHBOARD_FILTERS_CONSTANTS.SEARCH_CONFIG);
   public readonly $selectConfig = signal(DASHBOARD_FILTERS_CONSTANTS.SELECT_CONFIG);
   public readonly $dateConfig = signal(DASHBOARD_FILTERS_CONSTANTS.DATE_CONFIG);
   public readonly $buttonConfig = signal(DASHBOARD_FILTERS_CONSTANTS.BUTTON_CONFIG);
 
-  // Formulario reactivo
   public readonly filterForm = new FormGroup({
     search: new FormControl(''),
     pilar: new FormControl(''),
-    date: new FormControl<Date | null>(null),
+    date: new FormControl<string | Date | null>(null),
   });
 
-  // Métodos de muestra (sin efectos secundarios por ahora)
   public onSearchChange(event: unknown): void {}
+
   public onPilarChange(event: unknown): void {}
-  public onDateChange(date: Date | null): void {}
+
+  // Resuelve TS2345 recibiendo el evento genérico emitido por el componente
+  public onDateChange(event: unknown): void {}
+
   public submitFilters(): void {}
 }
-
 
 
 <form [formGroup]="filterForm" class="filters-bar" (ngSubmit)="submitFilters()">
@@ -125,64 +156,3 @@ export class DashboardFiltersComponent {
     </cb-button>
   </div>
 </form>
-
-
-
-:host {
-  display: block;
-  width: 100%;
-}
-
-.filters-bar {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end; // Alinea los inputs y el botón a ras en la base
-  gap: 16px;
-  width: 100%;
-  padding: 16px 0;
-
-  &__item {
-    display: flex;
-    flex-direction: column;
-
-    &--search {
-      flex: 1.5; // Le da más espacio al campo de búsqueda
-      min-width: 200px;
-    }
-
-    &--select {
-      flex: 1.2;
-      min-width: 180px;
-    }
-
-    &--date {
-      flex: 1.6;
-      min-width: 240px;
-    }
-
-    &--action {
-      flex: 0 0 auto;
-      margin-bottom: 2px; // Ajuste milimétrico con el borde inferior de los inputs
-    }
-  }
-
-  // Comportamiento responsivo en pantallas pequeñas
-  @media (max-width: 992px) {
-    flex-wrap: wrap;
-    align-items: stretch;
-
-    &__item {
-      width: 100%;
-      flex: 1 1 100%;
-
-      &--action {
-        width: 100%;
-        margin-top: 8px;
-
-        cb-button {
-          width: 100%;
-        }
-      }
-    }
-  }
-}
