@@ -1,161 +1,298 @@
-import { DestroyRef, ElementRef, Signal } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
-import {
-  ELEMENT_WIDTH_DEFAULTS,
-  injectElementWidth,
-} from './element-width.util';
+import { ScoreStatus } from '../../models/dashboard.interface'; // Ajusta la ruta a tu modelo
 
-const TEST_CONSTANTS = {
-  CUSTOM_FALLBACK_WIDTH: 800,
-  TARGET_RESIZE_WIDTH: 1024,
-  INVALID_WIDTH_ZERO: 0,
-  INVALID_WIDTH_NEGATIVE: -50,
+export const DASHBOARD_CARDS_CONSTANTS = {
+  EMPTY_STRING: '',
+  STATUS_COLORS: {
+    EXCELLENT: 'status-success-3',
+    GOOD: 'status-info-3',
+    REGULAR: 'status-alert-3',
+    CRITICAL: 'status-error-3',
+    DEFAULT: 'status-neutral-3',
+  },
+  TOP_CARD: {
+    ID: 'top-summary-card',
+    TITLE: 'Card Content Works!',
+    SUBTITLE: 'Subtitle text',
+    DESCRIPTION: 'Text paragraph with different extension. Here you can use one or more text lines.',
+    ICON: 'icon-book-2',
+    ARIAL_LABEL: 'arial label icon',
+    CARD_SIZE: 'small',
+    CARD_POSITION: 'horizontal',
+    CARD_TYPE: 'card-icon',
+  },
+  BOTTOM_CARD: {
+    ID: 'bottom-target-card',
+    TITLE: 'Valor objetivo',
+    DESCRIPTION: 'Text paragraph with different extension. Here you can use one or more text lines.',
+    ICON: 'podcast',
+    ARIAL_LABEL: 'arial label icon',
+    CARD_SIZE: 'small',
+    CARD_POSITION: 'horizontal',
+    CARD_TYPE: 'card-icon',
+    STATUS_TEXT: 'Status',
+    STATUS_COLOR: 'status-success-3',
+    STATUS_TYPE: 'only',
+    STATUS_ICON: 'icon-investment',
+    STATUS_BORDER: 'center',
+  },
+  KPI_CONFIG: {
+    VARIANT: 'new-product',
+    TYPE_ICON: 'icon',
+    BORDER_COLOR_CLASS: 'status-info-1',
+    ALIGN_LEFT: 'left',
+    STATUS_TYPE: 'only',
+    STATUS_BORDER: 'center',
+    TITLE_SEPARATOR: ' • ',
+  },
 } as const;
 
-describe('injectElementWidth Utility', () => {
-  let mockElementRef: ElementRef;
-  let mockResizeObserverInstance: {
-    observe: jest.Mock;
-    unobserve: jest.Mock;
-    disconnect: jest.Mock;
-  };
-  let resizeCallback: (entries: ResizeObserverEntry[]) => void;
+export const STATUS_COLOR_MAP: Record<ScoreStatus, string> = {
+  EXCELLENT: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.EXCELLENT,
+  GOOD: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.GOOD,
+  REGULAR: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.REGULAR,
+  BAD: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.CRITICAL,
+  CRITICAL: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.CRITICAL,
+  IN_DEVELOPMENT: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.DEFAULT,
+};
 
-  beforeEach(() => {
-    mockElementRef = {
-      nativeElement: document.createElement('div'),
-    };
 
-    mockResizeObserverInstance = {
-      observe: jest.fn(),
-      unobserve: jest.fn(),
-      disconnect: jest.fn(),
-    };
 
-    global.ResizeObserver = jest.fn().mockImplementation((callback) => {
-      resizeCallback = callback;
-      return mockResizeObserverInstance;
+
+import { Component, computed, input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { injectElementWidth } from '../../shared/utils/element-width.util';
+import {
+  DASHBOARD_CARDS_CONSTANTS,
+  STATUS_COLOR_MAP,
+} from './dashboards-cards.constants';
+
+// Ajusta las rutas a las interfaces reales de tu proyecto
+import { IDashboardOverview, ScoreStatus } from '../../models/dashboard.interface';
+import { BcCardContentConfig } from '@bancolombia/design-system';
+
+@Component({
+  selector: 'app-dashboards-cards',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './dashboards-cards.component.html',
+  styleUrls: ['./dashboards-cards.component.scss'],
+})
+export class DashboardsCardsComponent {
+  // Ancho dinámico autogestionado para todo el contenedor del componente
+  public readonly $containerWidth = injectElementWidth();
+
+  // Input de tarjetas con alias para preservar la compatibilidad con el padre
+  public readonly $cards = input<IDashboardOverview['kpiCards'] | undefined>([], {
+    alias: 'cards',
+  });
+
+  // 1. Configuración de la card superior
+  public readonly $topCardConfiguration = computed<BcCardContentConfig>(() => ({
+    idCard: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ID,
+    isActionable: false,
+    widthCardContent: this.$containerWidth(),
+    cardPosition: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.CARD_POSITION,
+    cardSize: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.CARD_SIZE,
+    cardType: DASHBOARD_CARDS_CARDS_CARD_TYPE_RESOLVER(),
+    iconFloat: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ICON,
+    configurationPhoto: { urlPhoto: '', altPhoto: '' },
+    configurationIllustration: { name: '', alt: '' },
+    configurationIcon: {
+      icon: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ICON,
+      arialLabel: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.ARIAL_LABEL,
+    },
+    title: {
+      value: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.TITLE,
+      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+    },
+    subtitle: {
+      value: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.SUBTITLE,
+      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+    },
+    textDescription: {
+      value: DASHBOARD_CARDS_CONSTANTS.TOP_CARD.DESCRIPTION,
+      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+    },
+  } as BcCardContentConfig));
+
+  // 2. Configuración de la card inferior (Valor objetivo)
+  public readonly $bottomCardConfiguration = computed<BcCardContentConfig>(() => ({
+    idCard: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ID,
+    isActionable: false,
+    widthCardContent: this.$containerWidth(),
+    cardPosition: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.CARD_POSITION,
+    cardSize: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.CARD_SIZE,
+    cardType: DASHBOARD_CARDS_CARDS_CARD_TYPE_RESOLVER(),
+    iconFloat: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ICON,
+    configurationPhoto: { urlPhoto: '', altPhoto: '' },
+    configurationIllustration: { name: '', alt: '' },
+    configurationIcon: {
+      icon: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ICON,
+      arialLabel: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.ARIAL_LABEL,
+    },
+    title: {
+      value: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.TITLE,
+      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+    },
+    textDescription: {
+      value: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.DESCRIPTION,
+      typographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+    },
+    status: {
+      color: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_COLOR,
+      text: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_TEXT,
+      type: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_TYPE,
+      customIcon: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_ICON,
+      border: DASHBOARD_CARDS_CONSTANTS.BOTTOM_CARD.STATUS_BORDER,
+    },
+  } as BcCardContentConfig));
+
+  // 3. Grid de tarjetas intermedias
+  public readonly $cardsConfigurations = computed(() => {
+    const items = this.$cards() ?? [];
+
+    return items.map((item, index) => {
+      const displayTitle = item.scoreDisplay
+        ? `${item.title}${DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.TITLE_SEPARATOR}${item.scoreDisplay}`
+        : item.title;
+
+      return {
+        id: `kpi-card-${item.id || index}`,
+        variant: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.VARIANT,
+        typeIcon: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.TYPE_ICON,
+        classColorBorder: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.BORDER_COLOR_CLASS,
+        borderColor: true,
+        infoAccount: {
+          title: displayTitle,
+          subtitle: item.description,
+          titleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          subtitleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textOneTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textTwoTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textThreeTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+        },
+        subInfoAccount: {
+          title: displayTitle,
+          subtitle: item.description,
+          titleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          subtitleTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textOneTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textTwoTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textThreeTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+        },
+        dataOne: {
+          titleData: item.rangeLabel,
+          data: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          textAlign: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.ALIGN_LEFT,
+          iconFranchise: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          titleDataTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+          dataTypographyClass: DASHBOARD_CARDS_CONSTANTS.EMPTY_STRING,
+        },
+        componentStatus: {
+          type: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.STATUS_TYPE,
+          color: this.mapStatusColor(item.status),
+          border: DASHBOARD_CARDS_CONSTANTS.KPI_CONFIG.STATUS_BORDER,
+          text: item.statusLabel,
+        },
+      };
     });
-
-    TestBed.configureTestingModule({
-      providers: [
-        { provide: ElementRef, useValue: mockElementRef },
-      ],
-    });
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    TestBed.resetTestingModule();
-  });
+  // Mapeo sin complejidad ciclomática por diccionario
+  private mapStatusColor(status: ScoreStatus): string {
+    return STATUS_COLOR_MAP[status] ?? DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.DEFAULT;
+  }
+}
 
-  it('debe inicializarse con el valor por defecto de ELEMENT_WIDTH_DEFAULTS', () => {
-    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
-      injectElementWidth()
-    );
+function DASHBOARD_CARDS_CARDS_CARD_TYPE_RESOLVER(): string {
+  return DASHBOARD_CARDS_CONSTANTS.TOP_CARD.CARD_TYPE;
+}
 
-    expect($width()).toBe(ELEMENT_WIDTH_DEFAULTS.FALLBACK_WIDTH);
-  });
 
-  it('debe inicializarse con un ancho personalizado cuando se suministra como argumento', () => {
-    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
-      injectElementWidth(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH)
-    );
 
-    expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
-  });
+<div class="cards-layout">
+  <!-- Card Superior -->
+  <div class="card-row">
+    <cb-card-content [dataConfiguration]="$topCardConfiguration()" />
+  </div>
 
-  it('debe registrar la observación del elemento nativo del host', () => {
-    TestBed.runInInjectionContext(() => injectElementWidth());
+  <!-- Grid de tarjetas de KPIs -->
+  <div class="cards-grid">
+    @for (cardConfig of $cardsConfigurations(); track cardConfig.id) {
+      <div class="cards-grid__item">
+        <cb-card-primary [config]="cardConfig" />
+      </div>
+    }
+  </div>
 
-    expect(global.ResizeObserver).toHaveBeenCalledTimes(1);
-    expect(mockResizeObserverInstance.observe).toHaveBeenCalledWith(
-      mockElementRef.nativeElement
-    );
-  });
+  <!-- Card Inferior (Valor Objetivo) -->
+  <div class="card-row">
+    <cb-card-content [dataConfiguration]="$bottomCardConfiguration()" />
+  </div>
+</div>
 
-  it('debe actualizar el signal cuando ocurre un evento de resize válido', () => {
-    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
-      injectElementWidth()
-    );
 
-    const mockEntries = [
-      {
-        contentRect: { width: TEST_CONSTANTS.TARGET_RESIZE_WIDTH },
-      } as unknown as ResizeObserverEntry,
-    ];
 
-    resizeCallback(mockEntries);
+:host {
+  display: block;
+  width: 100%;
+}
 
-    expect($width()).toBe(TEST_CONSTANTS.TARGET_RESIZE_WIDTH);
-  });
+.cards-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 
-  it('no debe actualizar el signal si el ancho recibido es menor o igual a cero', () => {
-    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
-      injectElementWidth(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH)
-    );
+  .card-row {
+    display: flex;
+    width: 100%;
 
-    const mockZeroEntry = [
-      {
-        contentRect: { width: TEST_CONSTANTS.INVALID_WIDTH_ZERO },
-      } as unknown as ResizeObserverEntry,
-    ];
+    cb-card-content {
+      display: block;
+      width: 100%;
+    }
+  }
 
-    resizeCallback(mockZeroEntry);
-    expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    margin-top: 16px;
+    margin-bottom: 24px;
 
-    const mockNegativeEntry = [
-      {
-        contentRect: { width: TEST_CONSTANTS.INVALID_WIDTH_NEGATIVE },
-      } as unknown as ResizeObserverEntry,
-    ];
+    &__item {
+      position: relative;
+      display: flex;
+      width: 100%;
+      background-color: #ffffff;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
 
-    resizeCallback(mockNegativeEntry);
-    expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
-  });
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        cursor: pointer;
+      }
 
-  it('no debe actualizar el signal si la lista de entries llega vacía', () => {
-    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
-      injectElementWidth(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH)
-    );
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background-color: #59cbe8;
+        z-index: 2;
+      }
 
-    resizeCallback([]);
-
-    expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
-  });
-
-  it('debe llamar a disconnect del ResizeObserver al destruirse el contexto de inyección', () => {
-    // Obtenemos el DestroyRef real de Angular y espiamos su método onDestroy
-    const destroyRef = TestBed.inject(DestroyRef);
-    const onDestroySpy = jest.spyOn(destroyRef, 'onDestroy');
-
-    TestBed.runInInjectionContext(() => injectElementWidth());
-
-    // 1. Verifica que injectElementWidth registró el callback
-    expect(onDestroySpy).toHaveBeenCalledTimes(1);
-
-    // 2. Al resetear/destruir el entorno de pruebas, se dispara la limpieza registrada
-    TestBed.resetTestingModule();
-
-    // 3. Verifica que la desconexión se ejecutó
-    expect(mockResizeObserverInstance.disconnect).toHaveBeenCalledTimes(1);
-  });
-
-  it('debe retornar el fallback de inmediato si ResizeObserver es undefined (entornos SSR)', () => {
-    const originalResizeObserver = global.ResizeObserver;
-    // @ts-expect-error simulación de entorno sin ResizeObserver
-    delete global.ResizeObserver;
-
-    const destroyRef = TestBed.inject(DestroyRef);
-    const onDestroySpy = jest.spyOn(destroyRef, 'onDestroy');
-
-    const $width: Signal<number> = TestBed.runInInjectionContext(() =>
-      injectElementWidth(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH)
-    );
-
-    expect($width()).toBe(TEST_CONSTANTS.CUSTOM_FALLBACK_WIDTH);
-    expect(onDestroySpy).not.toHaveBeenCalled();
-
-    global.ResizeObserver = originalResizeObserver;
-  });
-});
+      cb-card-primary {
+        width: 100%;
+        background: transparent;
+        border: none;
+      }
+    }
+  }
+}
