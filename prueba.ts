@@ -1,73 +1,56 @@
-import { CardPrimaryConfig } from '@bancolombia/design-system';
-import { ScoreStatus } from '../../models/dashboard.interface';
+.bottom-card-container {
+  position: relative;
+  display: block;
+  width: 100%;
 
-export type CardPrimaryStatusColor = NonNullable<CardPrimaryConfig['componentStatus']>['color'];
+  cb-card-content {
+    display: block;
+    width: 100%;
+  }
 
-export interface ThresholdItem {
-  range: string;
-  level: string;
-  statusKey: ScoreStatus;
+  .thresholds-row {
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
+    pointer-events: none; // Permite clicks a través si fuera necesario
+
+    .threshold-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+
+      &.badge-success {
+        background-color: #e8f5e9;
+        color: #1b5e20;
+        border: 1px solid #c8e6c9;
+      }
+
+      &.badge-warning {
+        background-color: #fff9c4;
+        color: #827717;
+        border: 1px solid #fff59d;
+      }
+
+      &.badge-danger {
+        background-color: #ffebee;
+        color: #c62828;
+        border: 1px solid #ffcdd2;
+      }
+
+      &.badge-neutral {
+        background-color: #f5f5f5;
+        color: #616161;
+        border: 1px solid #e0e0e0;
+      }
+    }
+  }
 }
-
-export const DASHBOARD_CARDS_CONSTANTS = {
-  EMPTY_STRING: '',
-  STATUS_COLORS: {
-    EXCELLENT: 'status-success-3',
-    GOOD: 'status-info-3',
-    REGULAR: 'status-alert-3',
-    CRITICAL: 'status-error-3',
-    DEFAULT: 'status-neutral-3',
-  },
-  TOP_CARD: {
-    ID: 'top-summary-card',
-    TITLE: 'Card Content Works!',
-    SUBTITLE: 'Subtitle text',
-    DESCRIPTION: 'Text paragraph with different extension. Here you can use one or more text lines.',
-    ICON: 'icon-book-2',
-    ARIAL_LABEL: 'arial label icon',
-    CARD_SIZE: 'small',
-    CARD_POSITION: 'horizontal',
-    CARD_TYPE: 'card-icon',
-  },
-  BOTTOM_CARD: {
-    ID: 'bottom-target-card',
-    TITLE: 'Valor objetivo',
-    DESCRIPTION: 'Rangos porcentuales de cumplimiento establecidos según el objetivo anual.',
-    ICON: 'podcast',
-    ARIAL_LABEL: 'arial label icon',
-    CARD_SIZE: 'small',
-    CARD_POSITION: 'horizontal',
-    CARD_TYPE: 'card-icon',
-    DEFAULT_THRESHOLDS: [
-      { range: '0% - 30%', level: 'Crítico', statusKey: 'CRITICAL' },
-      { range: '31% - 50%', level: 'Malo', statusKey: 'BAD' },
-      { range: '51% - 70%', level: 'Regular', statusKey: 'REGULAR' },
-      { range: '71% - 85%', level: 'Bueno', statusKey: 'GOOD' },
-      { range: '86% - 100%', level: 'Excelente', statusKey: 'EXCELLENT' },
-    ] as ThresholdItem[],
-  },
-  KPI_CONFIG: {
-    VARIANT: 'new-product',
-    TYPE_ICON: 'icon',
-    BORDER_COLOR_CLASS: 'status-info-1',
-    ALIGN_LEFT: 'left',
-    STATUS_TYPE: 'only',
-    STATUS_BORDER: 'center',
-    TITLE_SEPARATOR: ' • ',
-  },
-  BADGE_CLASSES: {
-    SUCCESS: 'badge-success',
-    WARNING: 'badge-warning',
-    DANGER: 'badge-danger',
-    NEUTRAL: 'badge-neutral',
-  },
-} as const;
-
-export const STATUS_COLOR_MAP: Record<ScoreStatus, CardPrimaryStatusColor> = {
-  EXCELLENT: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.EXCELLENT,
-  GOOD: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.GOOD,
-  REGULAR: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.REGULAR,
-  BAD: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.CRITICAL,
-  CRITICAL: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.CRITICAL,
-  IN_DEVELOPMENT: DASHBOARD_CARDS_CONSTANTS.STATUS_COLORS.DEFAULT,
-};
